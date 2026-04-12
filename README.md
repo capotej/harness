@@ -42,13 +42,13 @@ harness -e .env -p "refactor the auth module"
 ## Developing
 
 ```bash
-npm link .
+pnpm link --global
 ```
 
 This makes the `harness` command available globally from your local checkout. To remove it:
 
 ```bash
-npm -g unlink @capotej/harness
+pnpm unlink --global @capotej/harness
 ```
 
 ## Building

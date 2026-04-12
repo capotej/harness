@@ -5,14 +5,32 @@ const path = require('path');
 const fs = require('fs');
 const minimist = require('minimist');
 
+const USAGE = `Usage: harness [options]
+
+Options:
+  -p, --prompt <text>    Pass a prompt directly to the coding agent
+  -e, --env-file <file>  Load environment variables from a file into the container
+  -m, --model <model>    Override the model used by the agent
+  -s, --sh               Open an interactive bash shell instead of running the agent
+  -h, --help             Show this help message
+
+You can also pipe text to harness as an implied -p:
+  echo "write me a fizzbuzz in Go" | harness
+`;
+
 const workspace = process.cwd();
 const image = 'capotej/harness';
 
 const argv = minimist(process.argv.slice(2), {
-  boolean: ['sh', 's'],
+  boolean: ['sh', 's', 'help', 'h'],
   string: ['env-file', 'e', 'prompt', 'p', 'model', 'm'],
-  alias: { s: 'sh', e: 'env-file', p: 'prompt', m: 'model' },
+  alias: { s: 'sh', e: 'env-file', p: 'prompt', m: 'model', h: 'help' },
 });
+
+if (argv.help) {
+  process.stdout.write(USAGE);
+  process.exit(0);
+}
 
 const shMode = argv.sh;
 const envFilePath = argv['env-file'] || null;
@@ -63,7 +81,7 @@ if (!process.stdin.isTTY && promptArg === null && !shMode) {
   let input = '';
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk) => { input += chunk; });
-  process.stdin.on('end', () => run(input.trim() || null));
+  process.stdin.on('end', () => run(input.trim() ? input : null));
 } else {
   run(promptArg);
 }
