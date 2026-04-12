@@ -4,7 +4,40 @@
 
 Easily spin up a sandboxed agent within a directory. Currently uses [`pi`](https://pi.dev/) as the agent, but may change in the future as the landscape evolves.
 
+## Prerequisites
+
+[Docker](https://www.docker.com) is required to run the container.
+
+By default, harness uses a local model via [LM Studio](https://lmstudio.ai). Start the daemon and pull the default model:
+
+```bash
+lms daemon up
+lms get google/gemma-4-e4b
+```
+
+The container is preconfigured to use `gemma-4-e4b` via LM Studio's local API.
+
+### Using a cloud provider instead
+
+If you pass an API key for a supported provider via `--env-file`, [`pi`](https://pi.dev/) will use that provider instead of the local LM Studio setup. Supported keys:
+
+| Provider | Environment Variable |
+|----------|----------------------|
+| Anthropic | `ANTHROPIC_API_KEY` |
+| OpenRouter | `OPENROUTER_API_KEY` |
+| OpenAI | `OPENAI_API_KEY` |
+| Google Gemini | `GEMINI_API_KEY` |
+| Mistral | `MISTRAL_API_KEY` |
+| Groq | `GROQ_API_KEY` |
+| Cerebras | `CEREBRAS_API_KEY` |
+| xAI | `XAI_API_KEY` |
+| Hugging Face | `HF_TOKEN` |
+
+See the [full list of supported providers](https://github.com/badlogic/pi-mono/blob/c779c14e91bc2ea65143e59b0dc1baf3646ba8c9/packages/coding-agent/docs/providers.md#api-keys) for more options.
+
 ## Usage
+
+Navigate to any project directory and run:
 
 ```bash
 # Run the agent with a prompt
@@ -26,6 +59,8 @@ npx @capotej/harness -m anthropic/claude-sonnet-4-5 -p "refactor the auth module
 npx @capotej/harness -s
 ```
 
+This will start a container from the `capotej/harness` image, mount your current directory as `/workspace` inside the container, and run the [`pi` coding agent](https://pi.dev/).
+
 You can also install globally and use the `harness` command directly:
 
 ```bash
@@ -43,42 +78,14 @@ bunx @capotej/harness -p "write me a fizzbuzz in Go"
 pnpm dlx @capotej/harness -p "write me a fizzbuzz in Go"
 ```
 
-## Prerequisites
+## Options
 
-[Docker](https://www.docker.com) is required to run the container.
-
-To use local models, [LM Studio](https://lmstudio.ai) or [Ollama](https://ollama.com) is also required. For LM Studio, start the daemon and pull the default model:
-
-```bash
-lms daemon up
-lms get google/gemma-4-e4b
-```
-
-The container is preconfigured to use `gemma-4-e4b` by default via LM Studio's local API.
-
-### Using a cloud provider instead
-
-If you pass an API key for a supported provider via `--env-file`, [`pi`](https://pi.dev/) will use that provider instead of the local LM Studio setup. Supported keys:
-
-| Provider | Environment Variable |
-|----------|----------------------|
-| Anthropic | `ANTHROPIC_API_KEY` |
-| OpenRouter | `OPENROUTER_API_KEY` |
-| OpenAI | `OPENAI_API_KEY` |
-| Google Gemini | `GEMINI_API_KEY` |
-| Mistral | `MISTRAL_API_KEY` |
-| Groq | `GROQ_API_KEY` |
-| Cerebras | `CEREBRAS_API_KEY` |
-| xAI | `XAI_API_KEY` |
-| Hugging Face | `HF_TOKEN` |
-
-See the [full list of supported providers](https://github.com/badlogic/pi-mono/blob/c779c14e91bc2ea65143e59b0dc1baf3646ba8c9/packages/coding-agent/docs/providers.md#api-keys) for more options.
-
-```bash
-# Example: run with Anthropic instead of local models
-echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
-npx @capotej/harness -e .env -p "refactor the auth module"
-```
+| Flag | Alias | Description |
+|------|-------|-------------|
+| `--prompt` | `-p` | Pass a prompt directly to the coding agent |
+| `--env-file` | `-e` | Load environment variables from a file into the container |
+| `--model` | `-m` | Override the model used by the agent |
+| `--sh` | `-s` | Open an interactive bash shell instead of running the agent |
 
 ## Developing
 
@@ -112,38 +119,4 @@ To update the base image, fetch the manifest list digest and update `Dockerfile`
 
 ```bash
 docker buildx imagetools inspect debian:stable-slim --format '{{.Manifest.Digest}}'
-```
-
-## Running
-
-Navigate to any project directory and run:
-
-```bash
-npx @capotej/harness
-```
-
-Or, if you've linked the package locally:
-
-```bash
-harness
-```
-
-This will:
-- Start a container from the `capotej/harness` image
-- Mount your current directory as `/workspace` inside the container
-- Run the [`pi` coding agent](https://pi.dev/) in the container
-
-## Options
-
-| Flag | Alias | Description |
-|------|-------|-------------|
-| `--prompt` | `-p` | Pass a prompt directly to the coding agent |
-| `--env-file` | `-e` | Load environment variables from a file into the container |
-| `--model` | `-m` | Override the model used by the agent |
-| `--sh` | `-s` | Open an interactive bash shell instead of running the agent |
-
-You can also pipe text to `npx @capotej/harness` as an implied `-p`:
-
-```bash
-echo "write me a fizzbuzz in Go" | npx @capotej/harness
 ```
