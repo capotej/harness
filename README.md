@@ -1,6 +1,32 @@
+<p align="center">
+  <img src="logo.png" width="200" alt="harness" />
+</p>
+
 # @capotej/harness
 
-A portable environment for running coding agents in a container in any project.
+Easily spin up a sandboxed agent within a directory. Currently uses [`pi`](https://github.com/badlogic/pi-mono) as the agent, but may change in the future as the landscape evolves.
+
+## Usage
+
+```bash
+# Run the agent with a prompt
+npx @capotej/harness -p "write me a fizzbuzz in Go"
+
+# Pipe a prompt via stdin
+echo "write me a fizzbuzz in Go" | npx @capotej/harness
+
+# Pass an env file (e.g. for API keys)
+npx @capotej/harness -e .env
+
+# Combine flags
+npx @capotej/harness -e .env -p "add a login endpoint"
+
+# Use a specific model
+npx @capotej/harness -m anthropic/claude-sonnet-4-5 -p "refactor the auth module"
+
+# Open a shell for manual exploration
+npx @capotej/harness -s
+```
 
 ## Prerequisites
 
@@ -36,7 +62,7 @@ See the [full list of supported providers](https://github.com/badlogic/pi-mono/b
 ```bash
 # Example: run with Anthropic instead of local models
 echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
-harness -e .env -p "refactor the auth module"
+npx @capotej/harness -e .env -p "refactor the auth module"
 ```
 
 ## Developing
@@ -60,7 +86,7 @@ make image
 Builds the `capotej/harness` Docker image with:
 - Debian stable-slim
 - Node.js v24
-- `@mariozechner/pi-coding-agent` globally installed via pnpm
+- [`@mariozechner/pi-coding-agent`](https://github.com/badlogic/pi-mono) globally installed via pnpm
 - `fd`, `ripgrep`, `jq`, `vim`, `curl`, `iputils-ping`
 
 ### Base image pinning
@@ -90,7 +116,7 @@ harness
 This will:
 - Start a container from the `capotej/harness` image
 - Mount your current directory as `/workspace` inside the container
-- Run the `pi` coding agent in the container
+- Run the [`pi` coding agent](https://github.com/badlogic/pi-mono) in the container
 
 ## Options
 
@@ -101,30 +127,8 @@ This will:
 | `--model` | `-m` | Override the model used by the agent |
 | `--sh` | `-s` | Open an interactive bash shell instead of running the agent |
 
-You can also pipe text to `harness` as an implied `-p`:
+You can also pipe text to `npx @capotej/harness` as an implied `-p`:
 
 ```bash
-echo "write me a fizzbuzz in Go" | harness
-```
-
-### Examples
-
-```bash
-# Run the agent with a prompt
-harness -p "write me a fizzbuzz in Go"
-
-# Pipe a prompt via stdin
-echo "write me a fizzbuzz in Go" | harness
-
-# Pass an env file (e.g. for API keys)
-harness -e .env
-
-# Combine flags
-harness -e .env -p "add a login endpoint"
-
-# Use a specific model
-harness -m anthropic/claude-sonnet-4-5 -p "refactor the auth module"
-
-# Open a shell for manual exploration
-harness -s
+echo "write me a fizzbuzz in Go" | npx @capotej/harness
 ```

@@ -10,9 +10,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/capotej/harness.git"
+    "url": "git+https://github.com/capotej/harness.git"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "minimist": "^1.2.8"
   }
