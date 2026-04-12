@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="logo.png" width="200" alt="harness" />
+  <img src="logo.png" alt="harness" />
 </p>
-
-# @capotej/harness
 
 Easily spin up a sandboxed agent within a directory. Currently uses [`pi`](https://pi.dev/) as the agent, but may change in the future as the landscape evolves.
 
