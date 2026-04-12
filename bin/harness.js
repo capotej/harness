@@ -3,14 +3,21 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const minimist = require('minimist');
 
 const workspace = process.cwd();
 const image = 'capotej/harness';
 
-const shMode = process.argv.includes('--sh');
+const argv = minimist(process.argv.slice(2), {
+  boolean: ['sh', 's'],
+  string: ['env-file', 'e', 'prompt', 'p'],
+  alias: { s: 'sh', e: 'env-file', p: 'prompt' },
+});
 
-const envFileIndex = process.argv.indexOf('--env-file');
-const envFilePath = envFileIndex !== -1 ? process.argv[envFileIndex + 1] : null;
+const shMode = argv.sh;
+const envFilePath = argv['env-file'] || null;
+const promptArg = argv.prompt || null;
+const pMode = promptArg !== null;
 
 if (envFilePath && !fs.existsSync(envFilePath)) {
   console.error(`harness: env file not found: ${envFilePath}`);
@@ -18,6 +25,15 @@ if (envFilePath && !fs.existsSync(envFilePath)) {
 }
 
 const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
+
+let containerCmd;
+if (shMode) {
+  containerCmd = ['bash'];
+} else if (pMode) {
+  containerCmd = ['pi', '-p', promptArg];
+} else {
+  containerCmd = ['pi'];
+}
 
 const args = [
   'run',
@@ -30,7 +46,7 @@ const args = [
   '-v', `${workspace}:/workspace`,
   '-w', '/workspace',
   image,
-  ...(shMode ? ['bash'] : ['pi'])
+  ...containerCmd
 ];
 
 const docker = spawn('docker', args, { stdio: 'inherit' });
