@@ -39,6 +39,18 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
 harness -e .env -p "refactor the auth module"
 ```
 
+## Developing
+
+```bash
+npm link .
+```
+
+This makes the `harness` command available globally from your local checkout. To remove it:
+
+```bash
+npm -g unlink @capotej/harness
+```
+
 ## Building
 
 ```bash
