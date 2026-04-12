@@ -63,6 +63,16 @@ Builds the `capotej/harness` Docker image with:
 - `@mariozechner/pi-coding-agent` globally installed via pnpm
 - `fd`, `ripgrep`, `jq`, `vim`, `curl`, `iputils-ping`
 
+### Base image pinning
+
+The `Dockerfile` pins the base image by digest rather than tag to ensure reproducible builds. The digest used is the **manifest list** (OCI image index), not a per-platform manifest. This is important for multi-arch support: a manifest list digest resolves to the correct platform-specific image at build time, whereas pinning a per-platform digest causes a platform mismatch warning when building on a different architecture.
+
+To update the base image, fetch the manifest list digest and update `Dockerfile`:
+
+```bash
+docker buildx imagetools inspect debian:stable-slim --format '{{.Manifest.Digest}}'
+```
+
 ## Running
 
 Navigate to any project directory and run:
