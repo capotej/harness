@@ -19,7 +19,7 @@ You can also pipe text to harness as an implied -p:
 `;
 
 const workspace = process.cwd();
-const image = 'capotej/harness';
+const image = 'ghcr.io/capotej/harness';
 
 const argv = minimist(process.argv.slice(2), {
   boolean: ['sh', 's', 'help', 'h'],

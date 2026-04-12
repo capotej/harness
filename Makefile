@@ -1,4 +1,4 @@
 image:
-	docker build -t capotej/harness .
+	docker build -t ghcr.io/capotej/harness .
 
 .PHONY: image
