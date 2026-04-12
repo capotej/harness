@@ -5,6 +5,7 @@
       "api": "openai-completions",
       "apiKey": "ollama",
       "models": [
+        { "id": "gemma-4-e4b:4b" },
         { "id": "qwen3.5-9b:9b" },
         { "id": "nemotron-3-nano-4b:4b" }
       ]

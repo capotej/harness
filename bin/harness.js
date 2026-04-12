@@ -10,10 +10,13 @@ const args = [
   'run',
   '--rm',
   '-it',
+  '--cap-drop=ALL',
+  '--cap-add=NET_RAW',
+  '--security-opt', 'no-new-privileges:true',
   '-v', `${workspace}:/workspace`,
   '-w', '/workspace',
   image,
-  '/bin/bash'
+  'pi'
 ];
 
 const docker = spawn('docker', args, { stdio: 'inherit' });
