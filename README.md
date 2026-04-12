@@ -4,7 +4,9 @@ A portable environment for running coding agents in a container in any project.
 
 ## Prerequisites
 
-By default, the agent runs models locally via [LM Studio](https://lmstudio.ai). Install it, then start the daemon and pull the default model:
+[Docker](https://www.docker.com) is required to run the container.
+
+To use local models, [LM Studio](https://lmstudio.ai) or [Ollama](https://ollama.com) is also required. For LM Studio, start the daemon and pull the default model:
 
 ```bash
 lms daemon up
@@ -74,7 +76,14 @@ This will:
 |------|-------|-------------|
 | `--prompt` | `-p` | Pass a prompt directly to the coding agent |
 | `--env-file` | `-e` | Load environment variables from a file into the container |
+| `--model` | `-m` | Override the model used by the agent |
 | `--sh` | `-s` | Open an interactive bash shell instead of running the agent |
+
+You can also pipe text to `harness` as an implied `-p`:
+
+```bash
+echo "write me a fizzbuzz in Go" | harness
+```
 
 ### Examples
 
@@ -82,11 +91,17 @@ This will:
 # Run the agent with a prompt
 harness -p "write me a fizzbuzz in Go"
 
+# Pipe a prompt via stdin
+echo "write me a fizzbuzz in Go" | harness
+
 # Pass an env file (e.g. for API keys)
 harness -e .env
 
 # Combine flags
 harness -e .env -p "add a login endpoint"
+
+# Use a specific model
+harness -m anthropic/claude-sonnet-4-5 -p "refactor the auth module"
 
 # Open a shell for manual exploration
 harness -s

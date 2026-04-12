@@ -18,42 +18,52 @@ const shMode = argv.sh;
 const envFilePath = argv['env-file'] || null;
 const promptArg = argv.prompt || null;
 const modelArg = argv.model || null;
-const pMode = promptArg !== null;
 
 if (envFilePath && !fs.existsSync(envFilePath)) {
   console.error(`harness: env file not found: ${envFilePath}`);
   process.exit(1);
 }
 
-const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
+function run(prompt) {
+  const pMode = prompt !== null;
+  const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
+  const modelArgs = modelArg ? ['--model', modelArg] : [];
 
-const modelArgs = modelArg ? ['--model', modelArg] : [];
+  let containerCmd;
+  if (shMode) {
+    containerCmd = ['bash'];
+  } else if (pMode) {
+    containerCmd = ['pi', '-p', prompt, ...modelArgs];
+  } else {
+    containerCmd = ['pi', ...modelArgs];
+  }
 
-let containerCmd;
-if (shMode) {
-  containerCmd = ['bash'];
-} else if (pMode) {
-  containerCmd = ['pi', '-p', promptArg, ...modelArgs];
-} else {
-  containerCmd = ['pi', ...modelArgs];
+  const interactive = process.stdin.isTTY;
+  const ttyFlags = interactive ? ['-it'] : ['-i'];
+
+  const args = [
+    'run',
+    '--rm',
+    ...ttyFlags,
+    '--cap-drop=ALL',
+    '--cap-add=NET_RAW',
+    '--security-opt', 'no-new-privileges:true',
+    ...envFileArgs,
+    '-v', `${workspace}:/workspace`,
+    '-w', '/workspace',
+    image,
+    ...containerCmd
+  ];
+
+  const docker = spawn('docker', args, { stdio: 'inherit' });
+  docker.on('exit', (code) => process.exit(code));
 }
 
-const args = [
-  'run',
-  '--rm',
-  '-it',
-  '--cap-drop=ALL',
-  '--cap-add=NET_RAW',
-  '--security-opt', 'no-new-privileges:true',
-  ...envFileArgs,
-  '-v', `${workspace}:/workspace`,
-  '-w', '/workspace',
-  image,
-  ...containerCmd
-];
-
-const docker = spawn('docker', args, { stdio: 'inherit' });
-
-docker.on('exit', (code) => {
-  process.exit(code);
-});
+if (!process.stdin.isTTY && promptArg === null && !shMode) {
+  let input = '';
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (chunk) => { input += chunk; });
+  process.stdin.on('end', () => run(input.trim() || null));
+} else {
+  run(promptArg);
+}
