@@ -4,7 +4,7 @@
 
 # @capotej/harness
 
-Easily spin up a sandboxed agent within a directory. Currently uses [`pi`](https://github.com/badlogic/pi-mono) as the agent, but may change in the future as the landscape evolves.
+Easily spin up a sandboxed agent within a directory. Currently uses [`pi`](https://pi.dev/) as the agent, but may change in the future as the landscape evolves.
 
 ## Usage
 
@@ -43,7 +43,7 @@ The container is preconfigured to use `gemma-4-e4b` by default via LM Studio's l
 
 ### Using a cloud provider instead
 
-If you pass an API key for a supported provider via `--env-file`, `pi` will use that provider instead of the local LM Studio setup. Supported keys:
+If you pass an API key for a supported provider via `--env-file`, [`pi`](https://pi.dev/) will use that provider instead of the local LM Studio setup. Supported keys:
 
 | Provider | Environment Variable |
 |----------|----------------------|
@@ -86,7 +86,7 @@ make image
 Builds the `capotej/harness` Docker image with:
 - Debian stable-slim
 - Node.js v24
-- [`@mariozechner/pi-coding-agent`](https://github.com/badlogic/pi-mono) globally installed via pnpm
+- [`@mariozechner/pi-coding-agent`](https://pi.dev/) globally installed via pnpm
 - `fd`, `ripgrep`, `jq`, `vim`, `curl`, `iputils-ping`
 
 ### Base image pinning
@@ -116,7 +116,7 @@ harness
 This will:
 - Start a container from the `capotej/harness` image
 - Mount your current directory as `/workspace` inside the container
-- Run the [`pi` coding agent](https://github.com/badlogic/pi-mono) in the container
+- Run the [`pi` coding agent](https://pi.dev/) in the container
 
 ## Options
 
