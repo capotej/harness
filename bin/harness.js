@@ -10,13 +10,14 @@ const image = 'capotej/harness';
 
 const argv = minimist(process.argv.slice(2), {
   boolean: ['sh', 's'],
-  string: ['env-file', 'e', 'prompt', 'p'],
-  alias: { s: 'sh', e: 'env-file', p: 'prompt' },
+  string: ['env-file', 'e', 'prompt', 'p', 'model', 'm'],
+  alias: { s: 'sh', e: 'env-file', p: 'prompt', m: 'model' },
 });
 
 const shMode = argv.sh;
 const envFilePath = argv['env-file'] || null;
 const promptArg = argv.prompt || null;
+const modelArg = argv.model || null;
 const pMode = promptArg !== null;
 
 if (envFilePath && !fs.existsSync(envFilePath)) {
@@ -26,13 +27,15 @@ if (envFilePath && !fs.existsSync(envFilePath)) {
 
 const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
 
+const modelArgs = modelArg ? ['--model', modelArg] : [];
+
 let containerCmd;
 if (shMode) {
   containerCmd = ['bash'];
 } else if (pMode) {
-  containerCmd = ['pi', '-p', promptArg];
+  containerCmd = ['pi', '-p', promptArg, ...modelArgs];
 } else {
-  containerCmd = ['pi'];
+  containerCmd = ['pi', ...modelArgs];
 }
 
 const args = [
