@@ -1,5 +1,5 @@
-<p align="center">
-  <img src="logo.png" alt="harness" />
+<p align="center" style="margin-bottom: 0">
+  <img src="logo.png" alt="harness" width="500" />
 </p>
 
 Easily spin up a sandboxed agent within a directory. Currently uses [`pi`](https://pi.dev/) as the agent, but may change in the future as the landscape evolves.
@@ -24,6 +24,23 @@ npx @capotej/harness -m anthropic/claude-sonnet-4-5 -p "refactor the auth module
 
 # Open a shell for manual exploration
 npx @capotej/harness -s
+```
+
+You can also install globally and use the `harness` command directly:
+
+```bash
+npm install -g @capotej/harness
+# or
+pnpm add -g @capotej/harness
+# or
+bun add -g @capotej/harness
+```
+
+All examples use `npx`, but `bunx` and `pnpm dlx` work as drop-in replacements:
+
+```bash
+bunx @capotej/harness -p "write me a fizzbuzz in Go"
+pnpm dlx @capotej/harness -p "write me a fizzbuzz in Go"
 ```
 
 ## Prerequisites
