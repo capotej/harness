@@ -51,6 +51,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+          sbom: true
+          provenance: true
 
       - name: Export digest
         run: |
@@ -72,6 +74,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write  # required for cosign keyless signing
 
     steps:
       - name: Download digests
@@ -102,9 +105,23 @@ jobs:
             type=sha,prefix=
             type=raw,value=latest
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
       - name: Create and push manifest
+        id: create_manifest
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
+          DIGEST=$(docker buildx imagetools inspect \
+            "ghcr.io/${{ github.repository }}:latest" \
+            --format '{{.Manifest.Digest}}')
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+
+      - name: Sign the manifest
+        run: |
+          cosign sign --yes \
+            $(jq -cr '.tags | map(. + "@${{ steps.create_manifest.outputs.digest }}") | join(" ")' \
+              <<< "$DOCKER_METADATA_OUTPUT_JSON")
