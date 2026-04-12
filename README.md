@@ -2,6 +2,41 @@
 
 A portable environment for running coding agents in a container in any project.
 
+## Prerequisites
+
+By default, the agent runs models locally via [LM Studio](https://lmstudio.ai). Install it, then start the daemon and pull the default model:
+
+```bash
+lms daemon up
+lms get google/gemma-4-e4b
+```
+
+The container is preconfigured to use `gemma-4-e4b` by default via LM Studio's local API.
+
+### Using a cloud provider instead
+
+If you pass an API key for a supported provider via `--env-file`, `pi` will use that provider instead of the local LM Studio setup. Supported keys:
+
+| Provider | Environment Variable |
+|----------|----------------------|
+| Anthropic | `ANTHROPIC_API_KEY` |
+| OpenRouter | `OPENROUTER_API_KEY` |
+| OpenAI | `OPENAI_API_KEY` |
+| Google Gemini | `GEMINI_API_KEY` |
+| Mistral | `MISTRAL_API_KEY` |
+| Groq | `GROQ_API_KEY` |
+| Cerebras | `CEREBRAS_API_KEY` |
+| xAI | `XAI_API_KEY` |
+| Hugging Face | `HF_TOKEN` |
+
+See the [full list of supported providers](https://github.com/badlogic/pi-mono/blob/c779c14e91bc2ea65143e59b0dc1baf3646ba8c9/packages/coding-agent/docs/providers.md#api-keys) for more options.
+
+```bash
+# Example: run with Anthropic instead of local models
+echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
+harness -e .env -p "refactor the auth module"
+```
+
 ## Building
 
 ```bash
@@ -10,8 +45,9 @@ make image
 
 Builds the `capotej/harness` Docker image with:
 - Debian stable-slim
-- Node.js v20
-- @mariozechner/pi-coding-agent globally installed
+- Node.js v24
+- `@mariozechner/pi-coding-agent` globally installed via pnpm
+- `fd`, `ripgrep`, `jq`, `vim`, `curl`, `iputils-ping`
 
 ## Running
 
@@ -31,7 +67,6 @@ This will:
 - Start a container from the `capotej/harness` image
 - Mount your current directory as `/workspace` inside the container
 - Run the `pi` coding agent in the container
-- Your workspace is preconfigured with all the tools needed for coding agents
 
 ## Options
 
