@@ -16,7 +16,32 @@ interface Args extends ParsedArgs {
   p?: string;
   model?: string;
   m?: string;
+  agent?: string;
+  a?: string;
 }
+
+interface AgentOptions {
+  prompt: string | null;
+  model: string | null;
+}
+
+interface AgentAdapter {
+  buildCommand(options: AgentOptions): string[];
+}
+
+class PiAdapter implements AgentAdapter {
+  buildCommand({ prompt, model }: AgentOptions): string[] {
+    const modelArgs = model ? ['--model', model] : [];
+    if (prompt !== null) {
+      return ['pi', '-p', prompt, ...modelArgs];
+    }
+    return ['pi', ...modelArgs];
+  }
+}
+
+const ADAPTERS: Record<string, AgentAdapter> = {
+  pi: new PiAdapter(),
+};
 
 const USAGE = `Usage: harness [options]
 
@@ -25,6 +50,7 @@ Options:
   -e, --env-file <file>  Load environment variables from a file into the container
   -m, --model <model>    Override the model used by the agent
   -s, --sh               Open an interactive bash shell instead of running the agent
+  -a, --agent <name>     Select the coding agent adapter (default: pi)
   -h, --help             Show this help message
 
 You can also pipe text to harness as an implied -p:
@@ -36,8 +62,8 @@ const image = 'ghcr.io/capotej/harness:253b4e3';
 
 const argv = minimist<Args>(process.argv.slice(2), {
   boolean: ['sh', 's', 'help', 'h'],
-  string: ['env-file', 'e', 'prompt', 'p', 'model', 'm'],
-  alias: { s: 'sh', e: 'env-file', p: 'prompt', m: 'model', h: 'help' },
+  string: ['env-file', 'e', 'prompt', 'p', 'model', 'm', 'agent', 'a'],
+  alias: { s: 'sh', e: 'env-file', p: 'prompt', m: 'model', h: 'help', a: 'agent' },
 });
 
 if (argv.help) {
@@ -49,6 +75,12 @@ const shMode = argv.sh;
 const envFilePath = argv['env-file'] || null;
 const promptArg = argv.prompt || null;
 const modelArg = argv.model || null;
+const agentName = argv.agent ?? 'pi';
+
+if (!ADAPTERS[agentName]) {
+  console.error(`harness: unknown agent: "${agentName}". Available: ${Object.keys(ADAPTERS).join(', ')}`);
+  process.exit(1);
+}
 
 if (envFilePath && !fs.existsSync(envFilePath)) {
   console.error(`harness: env file not found: ${envFilePath}`);
@@ -56,18 +88,11 @@ if (envFilePath && !fs.existsSync(envFilePath)) {
 }
 
 function run(prompt: string | null): void {
-  const pMode = prompt !== null;
   const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
-  const modelArgs = modelArg ? ['--model', modelArg] : [];
 
-  let containerCmd: string[];
-  if (shMode) {
-    containerCmd = ['bash'];
-  } else if (pMode) {
-    containerCmd = ['pi', '-p', prompt, ...modelArgs];
-  } else {
-    containerCmd = ['pi', ...modelArgs];
-  }
+  const containerCmd = shMode
+    ? ['bash']
+    : ADAPTERS[agentName].buildCommand({ prompt, model: modelArg });
 
   const interactive = process.stdin.isTTY;
   const ttyFlags = interactive ? ['-it'] : ['-i'];
