@@ -1,9 +1,22 @@
 #!/usr/bin/env node
 
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const minimist = require('minimist');
+import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import minimist, { ParsedArgs } from 'minimist';
+
+interface Args extends ParsedArgs {
+  sh: boolean;
+  s: boolean;
+  help: boolean;
+  h: boolean;
+  'env-file'?: string;
+  e?: string;
+  prompt?: string;
+  p?: string;
+  model?: string;
+  m?: string;
+}
 
 const USAGE = `Usage: harness [options]
 
@@ -21,7 +34,7 @@ You can also pipe text to harness as an implied -p:
 const workspace = process.cwd();
 const image = 'ghcr.io/capotej/harness:253b4e3';
 
-const argv = minimist(process.argv.slice(2), {
+const argv = minimist<Args>(process.argv.slice(2), {
   boolean: ['sh', 's', 'help', 'h'],
   string: ['env-file', 'e', 'prompt', 'p', 'model', 'm'],
   alias: { s: 'sh', e: 'env-file', p: 'prompt', m: 'model', h: 'help' },
@@ -42,12 +55,12 @@ if (envFilePath && !fs.existsSync(envFilePath)) {
   process.exit(1);
 }
 
-function run(prompt) {
+function run(prompt: string | null): void {
   const pMode = prompt !== null;
   const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
   const modelArgs = modelArg ? ['--model', modelArg] : [];
 
-  let containerCmd;
+  let containerCmd: string[];
   if (shMode) {
     containerCmd = ['bash'];
   } else if (pMode) {
@@ -74,13 +87,13 @@ function run(prompt) {
   ];
 
   const docker = spawn('docker', args, { stdio: 'inherit' });
-  docker.on('exit', (code) => process.exit(code));
+  docker.on('exit', (code) => process.exit(code ?? 1));
 }
 
 if (!process.stdin.isTTY && promptArg === null && !shMode) {
   let input = '';
   process.stdin.setEncoding('utf8');
-  process.stdin.on('data', (chunk) => { input += chunk; });
+  process.stdin.on('data', (chunk: string) => { input += chunk; });
   process.stdin.on('end', () => run(input.trim() ? input : null));
 } else {
   run(promptArg);
