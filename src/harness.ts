@@ -12,6 +12,8 @@ interface Args extends ParsedArgs {
   h: boolean;
   'env-file'?: string;
   e?: string;
+  file?: string;
+  f?: string;
   prompt?: string;
   p?: string;
   model?: string;
@@ -64,6 +66,7 @@ const USAGE = `Usage: harness [options]
 Options:
   -p, --prompt <text>    Pass a prompt directly to the coding agent
   -e, --env-file <file>  Load environment variables from a file into the container
+  -f, --file <file>      Mount a single file into the container instead of the current directory
   -m, --model <model>    Override the model used by the agent
   -s, --sh               Open an interactive bash shell instead of running the agent
   -a, --agent <name>     Select the coding agent adapter (default: pi)
@@ -78,8 +81,8 @@ const image = 'ghcr.io/capotej/harness:95cdb21';
 
 const argv = minimist<Args>(process.argv.slice(2), {
   boolean: ['sh', 's', 'help', 'h'],
-  string: ['env-file', 'e', 'prompt', 'p', 'model', 'm', 'agent', 'a'],
-  alias: { s: 'sh', e: 'env-file', p: 'prompt', m: 'model', h: 'help', a: 'agent' },
+  string: ['env-file', 'e', 'file', 'f', 'prompt', 'p', 'model', 'm', 'agent', 'a'],
+  alias: { s: 'sh', e: 'env-file', f: 'file', p: 'prompt', m: 'model', h: 'help', a: 'agent' },
 });
 
 if (argv.help) {
@@ -89,6 +92,7 @@ if (argv.help) {
 
 const shMode = argv.sh;
 const envFilePath = argv['env-file'] || null;
+const fileArg = argv.file || null;
 const promptArg = argv.prompt || null;
 const modelArg = argv.model || null;
 const agentName = argv.agent ?? 'pi';
@@ -103,6 +107,16 @@ if (envFilePath && !fs.existsSync(envFilePath)) {
   process.exit(1);
 }
 
+if (fileArg && !fs.existsSync(fileArg)) {
+  console.error(`harness: file not found: ${fileArg}`);
+  process.exit(1);
+}
+
+if (fileArg && fs.statSync(fileArg).isDirectory()) {
+  console.error(`harness: --file requires a file, not a directory: ${fileArg}`);
+  process.exit(1);
+}
+
 function run(prompt: string | null): void {
   const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
 
@@ -114,6 +128,15 @@ function run(prompt: string | null): void {
   const interactive = process.stdin.isTTY;
   const ttyFlags = interactive ? ['-it'] : ['-i'];
 
+  let volumeArgs: string[];
+  if (fileArg) {
+    const absFile = path.resolve(fileArg);
+    const fileName = path.basename(absFile);
+    volumeArgs = ['-v', `${absFile}:/workspace/${fileName}`];
+  } else {
+    volumeArgs = ['-v', `${workspace}:/workspace`];
+  }
+
   const args = [
     'run',
     '--rm',
@@ -123,7 +146,7 @@ function run(prompt: string | null): void {
     '--security-opt', 'no-new-privileges:true',
     ...envFileArgs,
     ...adapterDockerArgs,
-    '-v', `${workspace}:/workspace`,
+    ...volumeArgs,
     '-w', '/workspace',
     image,
     ...containerCmd
