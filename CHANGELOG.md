@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.2.0] - 2026-04-19
+
+### Summary
+Adds the [`hermes`](https://github.com/NousResearch/hermes-agent) agent backend by NousResearch. The Docker image was also optimized by removing unused packages (`vim`, `iputils-ping`) and cleaning up caches to reduce image size.
+
+### Dependency Updates
+- added `uv` 0.11.6 (build stage for hermes installation)
+- added `hermes-agent` v2026.4.16
+
+### Changes
+- 63fef70 pin harness image
+- f385189 hermes agent
+- d021dbc optimize docker image, skill to analyze image
+- be45fa8 /release skill
+
 ## [1.1.1] - 2026-04-19
 
 ### Changes
