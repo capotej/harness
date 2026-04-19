@@ -87,7 +87,13 @@ You can also pipe text to harness as an implied -p:
 `;
 
 const workspace = process.cwd();
-const image = 'ghcr.io/capotej/harness:f385189';
+const REGISTRY = 'ghcr.io/capotej/harness';
+const IMAGE_TAG = 'latest';
+
+function getImage(agent: string): string {
+  const tag = agent === 'pi' ? IMAGE_TAG : `${agent}-${IMAGE_TAG}`;
+  return `${REGISTRY}:${tag}`;
+}
 
 const argv = minimist<Args>(process.argv.slice(2), {
   boolean: ['sh', 's', 'help', 'h'],
@@ -146,6 +152,8 @@ function run(prompt: string | null): void {
   } else {
     volumeArgs = ['-v', `${workspace}:/workspace`];
   }
+
+  const image = getImage(agentName);
 
   const args = [
     'run',

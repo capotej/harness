@@ -1,4 +1,4 @@
-name: Build and push Docker image
+name: Build and push Docker images
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
     types: [published]
 
 jobs:
-  build:
+  build-base:
     strategy:
       matrix:
         include:
@@ -37,11 +37,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract short SHA
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=${{ env.SHORT_SHA }}
+            type=raw,value=latest
 
       - name: Build and push by digest
         id: build
@@ -63,25 +69,25 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digest-${{ matrix.runner }}
+          name: digest-base-${{ matrix.runner }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
 
-  merge:
+  merge-base:
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-base
     permissions:
       contents: read
       packages: write
-      id-token: write  # required for cosign keyless signing
+      id-token: write
 
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
-          pattern: digest-*
+          pattern: digest-base-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
@@ -93,6 +99,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract short SHA
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
 
       - name: Extract metadata
         id: meta
@@ -125,3 +134,135 @@ jobs:
           cosign sign --yes \
             $(jq -cr '.tags | map(. + "@${{ steps.create_manifest.outputs.digest }}") | join(" ")' \
               <<< "$DOCKER_METADATA_OUTPUT_JSON")
+
+  build-variant:
+    needs: merge-base
+    strategy:
+      matrix:
+        include:
+          - variant: opencode
+            runner: ubuntu-latest
+            platform: linux/amd64
+          - variant: opencode
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64/v8
+          - variant: hermes
+            runner: ubuntu-latest
+            platform: linux/amd64
+          - variant: hermes
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64/v8
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract short SHA
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          build-args: BASE_IMAGE=ghcr.io/${{ github.repository }}:${{ env.SHORT_SHA }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+          file: Dockerfile.${{ matrix.variant }}
+          sbom: true
+          provenance: true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.variant }}-${{ matrix.runner }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-variant:
+    needs: build-variant
+    strategy:
+      matrix:
+        variant: [opencode, hermes]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digest-${{ matrix.variant }}-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract short SHA
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+
+      - name: Generate tags
+        id: tags
+        run: |
+          REPO="ghcr.io/${{ github.repository }}"
+          TAGS="${REPO}:${{ matrix.variant }}-${SHORT_SHA}"
+          if grep -q "tags/v" <<< "${{ github.ref }}"; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            TAGS="${TAGS},${REPO}:${{ matrix.variant }}-${VERSION}"
+          fi
+          TAGS="${TAGS},${REPO}:${{ matrix.variant }}-latest"
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Create and push manifest
+        id: create_manifest
+        working-directory: /tmp/digests
+        run: |
+          TAG_ARGS=$(echo "${{ steps.tags.outputs.tags }}" | tr ',' '\n' | sed 's/^/-t /' | tr '\n' ' ')
+          docker buildx imagetools create \
+            ${TAG_ARGS} \
+            $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
+          FIRST_TAG=$(echo "${{ steps.tags.outputs.tags }}" | cut -d',' -f1)
+          DIGEST=$(docker buildx imagetools inspect \
+            "${FIRST_TAG}" \
+            --format '{{.Manifest.Digest}}')
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+
+      - name: Sign the manifest
+        run: |
+          FIRST_TAG=$(echo "${{ steps.tags.outputs.tags }}" | cut -d',' -f1)
+          cosign sign --yes \
+            "${FIRST_TAG}@${{ steps.create_manifest.outputs.digest }}"

@@ -1,0 +1,15 @@
+ARG BASE_IMAGE=ghcr.io/capotej/harness:latest
+FROM ${BASE_IMAGE}
+
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate && \
+    pnpm install -g opencode-ai@1.14.18 && \
+    pnpm store prune && \
+    rm -rf ~/.cache/pnpm ~/.npm
+
+RUN mkdir -p /etc/opencode
+
+COPY opencode/lmstudio.json /etc/opencode/lmstudio.json
+COPY opencode/openrouter.json /etc/opencode/openrouter.json
+
+COPY entrypoint-opencode.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
