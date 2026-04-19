@@ -26,6 +26,10 @@ If they differ, there are unpushed commits on `main`. Inform the user:
 
 **Clean working state** — Run `jj status`. If there are uncommitted changes beyond what you're about to create (package.json + CHANGELOG.md), warn the user and ask whether to proceed.
 
+**README is up to date** — Read `README.md` and the commits since the last tag (collected in Step 3). Check whether any commit introduces new CLI flags, options, agents, or user-visible behavior that isn't reflected in `README.md`. If gaps are found, list them and ask the user to update `README.md` before continuing:
+
+> "Aborting: README.md appears out of date. The following changes may need documentation: <list>. Update README.md and re-run the release."
+
 ## Step 2: Determine the new version
 
 - If the user gave an explicit version, use it.
@@ -58,15 +62,27 @@ Get today's date:
 date +%Y-%m-%d
 ```
 
+Based on the commits collected, write a 1–3 sentence prose summary of what changed (new features, fixes, notable improvements). For any new user-visible features — especially new CLI flags, options, or agents — include a concrete inline example showing how to use them (e.g. `harness --flag value`). Then include the raw commit list beneath it.
+
+**Dockerfile dependency changes** — Diff `Dockerfile` against the last tag to find any version bumps to installed tools (e.g. `@mariozechner/pi-coding-agent`, `opencode-ai`, Node.js). If any are found, include a `### Dependency Updates` section listing each change as `- updated <package> to <version>`.
+
 **If CHANGELOG.md does not exist**, create it:
 ```markdown
 # Changelog
 
 ## [<version>] - <YYYY-MM-DD>
 
+### Summary
+<1–3 sentence prose summary of what changed>
+
+### Dependency Updates
+- updated <package> to <version>
+
 ### Changes
 - <hash> <message>
 ```
+
+Omit `### Dependency Updates` entirely if there are no Dockerfile dependency changes.
 
 **If it already exists**, insert the new entry immediately after the `# Changelog` header line, before any existing entries.
 
@@ -91,18 +107,20 @@ jj describe -m "release v<version>"
 jj new
 ```
 
-Push the main bookmark to remote:
+Advance the main bookmark to the release commit, then push:
+
 ```bash
-jj git push
+jj bookmark set main -r @-
+jj git push --bookmark main
 ```
 
 ## Step 8: Publish to npm
 
-```bash
-npm publish
-```
+npm publish requires an OTP and cannot be automated. Tell the user:
 
-Stop if this fails and report the error.
+> "Please run `npm publish` (with `--otp=<code>` if prompted for 2FA). Let me know when it succeeds and I'll continue."
+
+Wait for the user to confirm success before proceeding to Step 9.
 
 ## Step 9: Create and push the tag
 
@@ -112,10 +130,10 @@ Create the tag locally pointing to the release commit (one behind `@`, the curre
 jj tag set v<version> -r @-
 ```
 
-Push it to the remote:
+Push it to the remote (jj doesn't support pushing tags directly; use git):
 
 ```bash
-jj git push origin v<version>
+git push --tags
 ```
 
 ## Step 10: Create GitHub release
