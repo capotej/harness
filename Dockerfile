@@ -6,10 +6,8 @@ RUN apt-get update && \
         curl \
         fd-find \
         gnupg \
-        iputils-ping \
         jq \
         ripgrep \
-        vim \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
         | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
@@ -18,6 +16,7 @@ RUN apt-get update && \
     && apt-get update \
     && apt-get install -y --no-install-recommends nodejs \
     && ln -s /usr/bin/fdfind /usr/local/bin/fd \
+    && apt-get purge -y --auto-remove curl gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PNPM_HOME=/root/.local/share/pnpm
@@ -26,7 +25,8 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate && \
     pnpm install -g @mariozechner/pi-coding-agent@0.66.1 && \
     pnpm install -g opencode-ai@1.14.18 && \
-    pnpm store prune
+    pnpm store prune && \
+    rm -rf ~/.cache/pnpm ~/.npm
 
 RUN mkdir -p /root/.pi/agent /etc/opencode
 
