@@ -40,3 +40,4 @@ This repo uses **jujutsu (`jj`)** for version control (git is the backing store)
 
 - Keep `README.md` updated when changing CLI flags, options, or behavior (from `AGENTS.md`).
 - The Docker image is published to `ghcr.io/capotej/harness` via GitHub Actions (`.github/workflows/docker.yml`) on push to `main` and on release tags.
+- All dependencies in the Dockerfile MUST be pinned where possible: base images by digest, multi-stage source images by version tag, npm/pnpm packages by exact version, and git-cloned agents by tag or commit SHA.

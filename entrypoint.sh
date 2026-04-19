@@ -8,9 +8,11 @@ export OPENCODE_DISABLE_PRUNE=true
 if [ -n "$OPENROUTER_API_KEY" ]; then
   export OPENCODE_CONFIG=/etc/opencode/openrouter.json
   export OPENCODE_MODEL="openrouter/${OPENCODE_MODEL:-openrouter/auto}"
+  export HERMES_HOME=/root/.hermes-openrouter
 else
   export OPENCODE_CONFIG=/etc/opencode/lmstudio.json
   export OPENCODE_MODEL="${OPENCODE_MODEL:-lmstudio/google/gemma-4-e4b}"
+  export HERMES_HOME=/root/.hermes-local
 fi
 
 exec "$@"

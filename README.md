@@ -2,7 +2,7 @@
   <img src="logo.png" alt="harness" width="500" />
 </p>
 
-Easily spin up a sandboxed agent within a directory. Supports multiple coding agent backends: [`pi`](https://pi.dev/) (default) and [`opencode`](https://opencode.ai).
+Easily spin up a sandboxed agent within a directory. Supports multiple coding agent backends: [`pi`](https://pi.dev/) (default), [`opencode`](https://opencode.ai), and [`hermes`](https://github.com/NousResearch/hermes-agent).
 
 ## Prerequisites
 
@@ -35,7 +35,7 @@ If you pass an API key for a supported provider via `--env-file`, [`pi`](https:/
 | xAI | `XAI_API_KEY` |
 | Hugging Face | `HF_TOKEN` |
 
-See the [full list of supported providers](https://github.com/badlogic/pi-mono/blob/c779c14e91bc2ea65143e59b0dc1baf3646ba8c9/packages/coding-agent/docs/providers.md#api-keys) for more options.
+See the [full list of supported providers](https://github.com/badlogic/pi-mono/blob/c779c14e91bc2ea65143e59b0dc1baf3646ba8c9/packages/coding-agent/docs/providers.md#api-keys) for more options. When using LM Studio locally, 16k context is sufficient.
 
 #### opencode agent
 
@@ -45,12 +45,31 @@ See the [full list of supported providers](https://github.com/badlogic/pi-mono/b
 npx @capotej/harness -a opencode -e .env -p "refactor the auth module"
 ```
 
-The model is automatically selected based on the provider (`openrouter/auto` for OpenRouter, `google/gemma-4-e4b` via LM Studio). Override with `-m`:
+The model is automatically selected based on the provider (`openrouter/auto` for OpenRouter, `google/gemma-4-e4b` via LM Studio). Override with `-m`. When using LM Studio locally, ensure the model's context length is set to at least 32k tokens.
 
 ```bash
 # Use a specific OpenRouter model
 npx @capotej/harness -a opencode -e .env -m anthropic/claude-sonnet-4-5 -p "add tests"
 ```
+
+#### hermes agent
+
+[`hermes`](https://github.com/NousResearch/hermes-agent) by NousResearch supports many providers. Pass an env file with your API key:
+
+```bash
+npx @capotej/harness -a hermes -e .env -p "refactor the auth module"
+```
+
+Specify a model using `provider/model` format:
+
+```bash
+npx @capotej/harness -a hermes -e .env -m "anthropic/claude-sonnet-4-5" -p "add tests"
+npx @capotej/harness -a hermes -e .env -m "openrouter/auto" -p "add tests"
+```
+
+Supported provider env vars include `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, and [many others](https://github.com/NousResearch/hermes-agent/blob/main/.env.example).
+
+When using LM Studio locally, ensure the model's context length is set to at least 64k tokens.
 
 ## Usage
 
@@ -112,7 +131,7 @@ pnpm dlx @capotej/harness -p "write me a fizzbuzz in Go"
 | `--env-file` | `-e` | Load environment variables from a file into the container |
 | `--file` | `-f` | Mount a single file into the container instead of the current directory |
 | `--model` | `-m` | Override the model used by the agent |
-| `--agent` | `-a` | Select the coding agent (`pi` or `opencode`, default: `pi`) |
+| `--agent` | `-a` | Select the coding agent (`pi`, `opencode`, or `hermes`, default: `pi`) |
 | `--sh` | `-s` | Open an interactive bash shell instead of running the agent |
 
 ### Agent-specific options
@@ -120,6 +139,8 @@ pnpm dlx @capotej/harness -p "write me a fizzbuzz in Go"
 **`pi`** — model is passed directly as a CLI argument. Supports any provider key in the env file.
 
 **`opencode`** — model is passed via `OPENCODE_MODEL` env var. Provider is auto-detected from the env file: if `OPENROUTER_API_KEY` is present, OpenRouter is used; otherwise LM Studio (local). The `-m` flag accepts a bare model name (e.g. `anthropic/claude-sonnet-4-5`) and the provider prefix is added automatically.
+
+**`hermes`** — model is passed via `--model` flag using `provider/model` format (e.g. `anthropic/claude-sonnet-4-5`). Provider is auto-detected from whichever API key is present in the env file.
 
 ## Developing
 
@@ -144,7 +165,8 @@ Builds the `capotej/harness` Docker image with:
 - Node.js v24
 - [`@mariozechner/pi-coding-agent`](https://pi.dev/) globally installed via pnpm
 - [`opencode-ai`](https://opencode.ai) globally installed via pnpm
-- `fd`, `ripgrep`, `jq`, `vim`, `curl`, `iputils-ping`
+- [`hermes-agent`](https://github.com/NousResearch/hermes-agent) installed via uv + Python 3
+- `fd`, `ripgrep`, `jq`, `curl`
 
 ### Base image pinning
 

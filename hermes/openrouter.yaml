@@ -1,0 +1,3 @@
+model:
+  default: openrouter/auto
+  provider: openrouter

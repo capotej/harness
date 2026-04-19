@@ -1,0 +1,5 @@
+model:
+  default: gemma-4-e4b
+  provider: custom
+  base_url: http://host.docker.internal:1234/v1
+  api_key: ""

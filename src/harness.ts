@@ -56,9 +56,19 @@ class OpenCodeAdapter implements AgentAdapter {
   }
 }
 
+class HermesAdapter implements AgentAdapter {
+  buildCommand({ prompt, model }: AgentOptions): string[] {
+    const args = ['hermes', 'chat'];
+    if (model) args.push('-m', model);
+    if (prompt !== null) args.push('-q', prompt);
+    return args;
+  }
+}
+
 const ADAPTERS: Record<string, AgentAdapter> = {
   pi: new PiAdapter(),
   opencode: new OpenCodeAdapter(),
+  hermes: new HermesAdapter(),
 };
 
 const USAGE = `Usage: harness [options]
@@ -69,7 +79,7 @@ Options:
   -f, --file <file>      Mount a single file into the container instead of the current directory
   -m, --model <model>    Override the model used by the agent
   -s, --sh               Open an interactive bash shell instead of running the agent
-  -a, --agent <name>     Select the coding agent adapter (default: pi)
+  -a, --agent <name>     Select the coding agent adapter: pi, opencode, hermes (default: pi)
   -h, --help             Show this help message
 
 You can also pipe text to harness as an implied -p:
@@ -77,7 +87,7 @@ You can also pipe text to harness as an implied -p:
 `;
 
 const workspace = process.cwd();
-const image = 'ghcr.io/capotej/harness:95cdb21';
+const image = 'ghcr.io/capotej/harness:latest';
 
 const argv = minimist<Args>(process.argv.slice(2), {
   boolean: ['sh', 's', 'help', 'h'],
