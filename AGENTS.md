@@ -1,3 +1,2 @@
-# Rules
+See @CLAUDE.md
 
-* Make sure to keep the README updated with any changes made.
