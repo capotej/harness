@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "openrouter": {
+      "models": {
+        "openrouter/auto": {}
+      }
+    }
+  },
+  "model": "{env:OPENCODE_MODEL}",
+  "enabled_providers": ["openrouter"]
+}

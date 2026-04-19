@@ -25,10 +25,17 @@ ENV PATH=$PNPM_HOME:$PATH
 
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate && \
     pnpm install -g @mariozechner/pi-coding-agent@0.66.1 && \
+    pnpm install -g opencode-ai@1.14.18 && \
     pnpm store prune
 
-RUN mkdir -p /root/.pi/agent
+RUN mkdir -p /root/.pi/agent /etc/opencode
 
 COPY models.json /root/.pi/agent/models.json
+COPY opencode/lmstudio.json /etc/opencode/lmstudio.json
+COPY opencode/openrouter.json /etc/opencode/openrouter.json
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 WORKDIR /app
+ENTRYPOINT ["/entrypoint.sh"]

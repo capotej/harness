@@ -23,10 +23,12 @@ interface Args extends ParsedArgs {
 interface AgentOptions {
   prompt: string | null;
   model: string | null;
+  envFilePath: string | null;
 }
 
 interface AgentAdapter {
   buildCommand(options: AgentOptions): string[];
+  extraDockerArgs?(options: AgentOptions): string[];
 }
 
 class PiAdapter implements AgentAdapter {
@@ -39,8 +41,22 @@ class PiAdapter implements AgentAdapter {
   }
 }
 
+class OpenCodeAdapter implements AgentAdapter {
+  buildCommand({ prompt }: AgentOptions): string[] {
+    if (prompt !== null) {
+      return ['opencode', 'run', prompt];
+    }
+    return ['opencode'];
+  }
+
+  extraDockerArgs({ model }: AgentOptions): string[] {
+    return model ? ['-e', `OPENCODE_MODEL=${model}`] : [];
+  }
+}
+
 const ADAPTERS: Record<string, AgentAdapter> = {
   pi: new PiAdapter(),
+  opencode: new OpenCodeAdapter(),
 };
 
 const USAGE = `Usage: harness [options]
@@ -58,7 +74,7 @@ You can also pipe text to harness as an implied -p:
 `;
 
 const workspace = process.cwd();
-const image = 'ghcr.io/capotej/harness:253b4e3';
+const image = 'ghcr.io/capotej/harness:latest';
 
 const argv = minimist<Args>(process.argv.slice(2), {
   boolean: ['sh', 's', 'help', 'h'],
@@ -90,9 +106,10 @@ if (envFilePath && !fs.existsSync(envFilePath)) {
 function run(prompt: string | null): void {
   const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
 
-  const containerCmd = shMode
-    ? ['bash']
-    : ADAPTERS[agentName].buildCommand({ prompt, model: modelArg });
+  const adapter = ADAPTERS[agentName];
+  const adapterOptions = { prompt, model: modelArg, envFilePath };
+  const containerCmd = shMode ? ['bash'] : adapter.buildCommand(adapterOptions);
+  const adapterDockerArgs = adapter.extraDockerArgs?.(adapterOptions) ?? [];
 
   const interactive = process.stdin.isTTY;
   const ttyFlags = interactive ? ['-it'] : ['-i'];
@@ -105,6 +122,7 @@ function run(prompt: string | null): void {
     '--cap-add=NET_RAW',
     '--security-opt', 'no-new-privileges:true',
     ...envFileArgs,
+    ...adapterDockerArgs,
     '-v', `${workspace}:/workspace`,
     '-w', '/workspace',
     image,

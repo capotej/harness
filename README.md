@@ -2,7 +2,7 @@
   <img src="logo.png" alt="harness" width="500" />
 </p>
 
-Easily spin up a sandboxed agent within a directory. Currently uses [`pi`](https://pi.dev/) as the agent, but may change in the future as the landscape evolves.
+Easily spin up a sandboxed agent within a directory. Supports multiple coding agent backends: [`pi`](https://pi.dev/) (default) and [`opencode`](https://opencode.ai).
 
 ## Prerequisites
 
@@ -19,6 +19,8 @@ The container is preconfigured to use `gemma-4-e4b` via LM Studio's local API.
 
 ### Using a cloud provider instead
 
+#### pi (default agent)
+
 If you pass an API key for a supported provider via `--env-file`, [`pi`](https://pi.dev/) will use that provider instead of the local LM Studio setup. Supported keys:
 
 | Provider | Environment Variable |
@@ -34,6 +36,21 @@ If you pass an API key for a supported provider via `--env-file`, [`pi`](https:/
 | Hugging Face | `HF_TOKEN` |
 
 See the [full list of supported providers](https://github.com/badlogic/pi-mono/blob/c779c14e91bc2ea65143e59b0dc1baf3646ba8c9/packages/coding-agent/docs/providers.md#api-keys) for more options.
+
+#### opencode agent
+
+[`opencode`](https://opencode.ai) uses LM Studio by default. To use OpenRouter instead, pass an env file containing `OPENROUTER_API_KEY`:
+
+```bash
+npx @capotej/harness -a opencode -e .env -p "refactor the auth module"
+```
+
+The model is automatically selected based on the provider (`openrouter/auto` for OpenRouter, `google/gemma-4-e4b` via LM Studio). Override with `-m`:
+
+```bash
+# Use a specific OpenRouter model
+npx @capotej/harness -a opencode -e .env -m anthropic/claude-sonnet-4-5 -p "add tests"
+```
 
 ## Usage
 
@@ -57,9 +74,15 @@ npx @capotej/harness -m anthropic/claude-sonnet-4-5 -p "refactor the auth module
 
 # Open a shell for manual exploration
 npx @capotej/harness -s
+
+# Use the opencode agent
+npx @capotej/harness -a opencode -p "write me a fizzbuzz in Go"
+
+# Use opencode with OpenRouter
+npx @capotej/harness -a opencode -e .env -p "write me a fizzbuzz in Go"
 ```
 
-This will start a container from the `capotej/harness` image, mount your current directory as `/workspace` inside the container, and run the [`pi` coding agent](https://pi.dev/).
+This will start a container from the `capotej/harness` image, mount your current directory as `/workspace` inside the container, and run the selected coding agent.
 
 You can also install globally and use the `harness` command directly:
 
@@ -85,7 +108,14 @@ pnpm dlx @capotej/harness -p "write me a fizzbuzz in Go"
 | `--prompt` | `-p` | Pass a prompt directly to the coding agent |
 | `--env-file` | `-e` | Load environment variables from a file into the container |
 | `--model` | `-m` | Override the model used by the agent |
+| `--agent` | `-a` | Select the coding agent (`pi` or `opencode`, default: `pi`) |
 | `--sh` | `-s` | Open an interactive bash shell instead of running the agent |
+
+### Agent-specific options
+
+**`pi`** — model is passed directly as a CLI argument. Supports any provider key in the env file.
+
+**`opencode`** — model is passed via `OPENCODE_MODEL` env var. Provider is auto-detected from the env file: if `OPENROUTER_API_KEY` is present, OpenRouter is used; otherwise LM Studio (local). The `-m` flag accepts a bare model name (e.g. `anthropic/claude-sonnet-4-5`) and the provider prefix is added automatically.
 
 ## Developing
 
@@ -109,6 +139,7 @@ Builds the `capotej/harness` Docker image with:
 - Debian stable-slim
 - Node.js v24
 - [`@mariozechner/pi-coding-agent`](https://pi.dev/) globally installed via pnpm
+- [`opencode-ai`](https://opencode.ai) globally installed via pnpm
 - `fd`, `ripgrep`, `jq`, `vim`, `curl`, `iputils-ping`
 
 ### Base image pinning
