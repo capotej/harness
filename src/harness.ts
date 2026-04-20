@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn, execFileSync } from 'child_process';
+import { spawn, execFile } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import minimist, { ParsedArgs } from 'minimist';
@@ -69,29 +69,47 @@ class HermesAdapter implements AgentAdapter {
 const IDENTITY_REGEXP = 'https://github.com/capotej/harness/.github/workflows/docker.yml@refs/tags/';
 const OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 
-function verifyImage(image: string): void {
+interface CosignError extends NodeJS.ErrnoException {
+  stderr?: string;
+}
+
+function cosign(args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    execFile('cosign', args, { timeout: 30000 }, (err, _stdout, stderr) => {
+      if (err) {
+        const e = err as CosignError;
+        e.stderr = stderr;
+        reject(e);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+async function verifyImage(image: string): Promise<void> {
   const identityArgs = [
     '--certificate-identity-regexp', IDENTITY_REGEXP,
     '--certificate-oidc-issuer', OIDC_ISSUER,
   ];
-  const execOptions = { stdio: 'pipe' as const, timeout: 30000 };
 
-  try {
-    execFileSync('cosign', ['verify', ...identityArgs, image], execOptions);
-  } catch (err) {
-    const e = err as NodeJS.ErrnoException & { stderr?: Buffer };
+  const verifyP = cosign(['verify', ...identityArgs, image]);
+  const attestP = cosign(['verify-attestation', '--type', 'slsaprovenance', ...identityArgs, image]);
+
+  const [verifyResult, attestResult] = await Promise.allSettled([verifyP, attestP]);
+
+  if (verifyResult.status === 'rejected') {
+    const e = verifyResult.reason as CosignError;
     if (e.code === 'ENOENT') {
       console.error('harness: WARNING: cosign not found — skipping image verification (brew install cosign)');
       return;
     }
     console.error(`harness: image signature verification failed for ${image}`);
-    console.error(e.stderr?.toString().trim() || e.message);
+    console.error(e.stderr?.trim() || e.message);
     process.exit(1);
   }
 
-  try {
-    execFileSync('cosign', ['verify-attestation', '--type', 'slsaprovenance', ...identityArgs, image], execOptions);
-  } catch {
+  if (attestResult.status === 'rejected') {
     console.error(`harness: WARNING: no provenance attestation found for ${image}`);
   }
 }
@@ -167,11 +185,11 @@ if (fileArg && fs.statSync(fileArg).isDirectory()) {
   process.exit(1);
 }
 
-function run(prompt: string | null): void {
+async function run(prompt: string | null): Promise<void> {
   const image = getImage(agentName);
 
-  if (!noVerify && process.env.HARNESS_VERIFY === '1') {
-    verifyImage(image);
+  if (!noVerify) {
+    await verifyImage(image);
   }
 
   const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
@@ -216,7 +234,7 @@ if (!process.stdin.isTTY && promptArg === null && !shMode) {
   let input = '';
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk: string) => { input += chunk; });
-  process.stdin.on('end', () => run(input.trim() ? input : null));
+  process.stdin.on('end', () => run(input.trim() ? input : null).catch(() => process.exit(1)));
 } else {
-  run(promptArg);
+  run(promptArg).catch(() => process.exit(1));
 }
