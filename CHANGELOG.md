@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1] - 2026-04-19
+
+### Summary
+Adds build provenance attestation to the CI pipeline for improved supply chain security.
+
+### Changes
+- ad23df9 attest build provenance
+
 ## [1.3.0] - 2026-04-19
 
 ### Summary
