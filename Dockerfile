@@ -8,6 +8,7 @@ RUN apt-get update && \
         gnupg \
         jq \
         ripgrep \
+        sudo \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
         | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
@@ -17,22 +18,26 @@ RUN apt-get update && \
     && apt-get install -y --no-install-recommends nodejs \
     && ln -s /usr/bin/fdfind /usr/local/bin/fd \
     && apt-get purge -y --auto-remove gnupg \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -s /bin/bash harness \
+    && echo 'harness ALL=(root) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt' > /etc/sudoers.d/harness \
+    && chmod 0440 /etc/sudoers.d/harness
 
-ENV PNPM_HOME=/root/.local/share/pnpm
+ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate && \
-    pnpm install -g @mariozechner/pi-coding-agent@0.66.1 && \
+    pnpm install -g @mariozechner/pi-coding-agent@0.67.68 && \
     pnpm store prune && \
-    rm -rf ~/.cache/pnpm ~/.npm
+    rm -rf ~/.cache/pnpm ~/.npm && \
+    mkdir -p /home/harness/.pi/agent && \
+    chown -R harness:harness /home/harness/.pi/agent /usr/local/share/pnpm
 
-RUN mkdir -p /root/.pi/agent
-
-COPY models.json /root/.pi/agent/models.json
+COPY --chown=harness:harness pi/models.json /home/harness/.pi/agent/models.json
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+USER harness
 WORKDIR /app
 ENTRYPOINT ["/entrypoint.sh"]

@@ -1,6 +1,8 @@
 ARG BASE_IMAGE=ghcr.io/capotej/harness:latest
 FROM ${BASE_IMAGE}
 
+USER root
+
 COPY --from=ghcr.io/astral-sh/uv:0.11.6 /uv /usr/local/bin/uv
 
 RUN apt-get update && \
@@ -11,15 +13,20 @@ RUN apt-get update && \
     && uv venv venv --python python3 \
     && VIRTUAL_ENV=/opt/hermes-agent/venv uv pip install --no-cache-dir -e "." \
     && ln -sf /opt/hermes-agent/venv/bin/hermes /usr/local/bin/hermes \
-    && mkdir -p /root/.hermes-local/{sessions,logs,hooks,memories,skills,plans,workspace} \
-    && mkdir -p /root/.hermes-openrouter/{sessions,logs,hooks,memories,skills,plans,workspace} \
-    && cp /opt/hermes-agent/.env.example /root/.hermes-local/.env \
-    && cp /opt/hermes-agent/.env.example /root/.hermes-openrouter/.env \
+    && mkdir -p /home/harness/.hermes-local/{sessions,logs,hooks,memories,skills,plans,workspace} \
+    && mkdir -p /home/harness/.hermes-openrouter/{sessions,logs,hooks,memories,skills,plans,workspace} \
+    && cp /opt/hermes-agent/.env.example /home/harness/.hermes-local/.env \
+    && cp /opt/hermes-agent/.env.example /home/harness/.hermes-openrouter/.env \
+    && chown -R harness:harness /home/harness/.hermes-local /home/harness/.hermes-openrouter \
     && rm -rf /opt/hermes-agent/.git /root/.cache/uv \
     && rm -rf /var/lib/apt/lists/*
 
-COPY hermes/local.yaml /root/.hermes-local/config.yaml
-COPY hermes/openrouter.yaml /root/.hermes-openrouter/config.yaml
+COPY --chown=harness:harness hermes/local.yaml /home/harness/.hermes-local/config.yaml
+COPY --chown=harness:harness hermes/openrouter.yaml /home/harness/.hermes-openrouter/config.yaml
 
 COPY entrypoint-hermes.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+USER harness
+WORKDIR /app
+ENTRYPOINT ["/entrypoint.sh"]
