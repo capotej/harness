@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0] - 2026-04-19
+
+### Summary
+Agent backends (`opencode`, `hermes`) have been split into separate sub-images that are dynamically loaded at runtime, keeping the base image lean. Image verification on startup is now supported (experimental, opt-in via `HARNESS_VERIFY=1`): harness checks that the container image was signed by the official CI workflow using cosign before running. Disable with `--no-verify`.
+
+### Dependency Updates
+- removed `opencode-ai@1.14.18` from base image (moved to subimage)
+- removed `uv@0.11.6` and `hermes-agent@v2026.4.16` from base image (moved to subimage)
+
+### Changes
+- 5b7c4fe split up agents into subimages, dynamically load them
+- 79542cd verify harness image on start (experimental, behind HARNESS_VERIFY=1)
+
 ## [1.2.0] - 2026-04-19
 
 ### Summary
