@@ -1,0 +1,37 @@
+name: Attest build provenance
+description: Generate and push a SLSA v0.2 provenance attestation with cosign
+
+inputs:
+  digest:
+    description: Manifest digest (sha256:...) to attest
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        PREDICATE=$(mktemp)
+        jq -n \
+          --arg repo "$GITHUB_REPOSITORY" \
+          --arg ref "$GITHUB_REF" \
+          --arg sha "$GITHUB_SHA" \
+          '{
+            buildType: "https://slsa.dev/provenance/v0.2",
+            builder: {id: "https://github.com/actions/runner"},
+            invocation: {
+              configSource: {
+                uri: ("git+https://github.com/" + $repo + "@" + $ref),
+                digest: {sha1: $sha},
+                entryPoint: ".github/workflows/docker.yml"
+              }
+            },
+            materials: [{
+              uri: ("git+https://github.com/" + $repo),
+              digest: {sha1: $sha}
+            }]
+          }' > "$PREDICATE"
+        cosign attest --yes \
+          --type slsaprovenance \
+          --predicate "$PREDICATE" \
+          "ghcr.io/$GITHUB_REPOSITORY@${{ inputs.digest }}"

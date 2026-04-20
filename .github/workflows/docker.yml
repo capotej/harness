@@ -133,6 +133,11 @@ jobs:
             $(jq -cr '.tags | map(. + "@${{ steps.create_manifest.outputs.digest }}") | join(" ")' \
               <<< "$DOCKER_METADATA_OUTPUT_JSON")
 
+      - name: Attest build provenance
+        uses: ./.github/actions/attest-provenance
+        with:
+          digest: ${{ steps.create_manifest.outputs.digest }}
+
   build-variant:
     needs: merge-base
     strategy:
@@ -264,3 +269,8 @@ jobs:
           TAG_ARGS=$(echo "${{ steps.tags.outputs.tags }}" | tr ',' '\n' | \
             sed "s|$|@${{ steps.create_manifest.outputs.digest }}|" | tr '\n' ' ')
           cosign sign --yes ${TAG_ARGS}
+
+      - name: Attest build provenance
+        uses: ./.github/actions/attest-provenance
+        with:
+          digest: ${{ steps.create_manifest.outputs.digest }}
