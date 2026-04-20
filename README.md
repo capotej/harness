@@ -94,9 +94,6 @@ npx @capotej/harness -m anthropic/claude-sonnet-4-5 -p "refactor the auth module
 # Mount a single file instead of the current directory
 npx @capotej/harness -f ./script.py -p "add type hints"
 
-# Open a shell for manual exploration
-npx @capotej/harness -s
-
 # Use the opencode agent
 npx @capotej/harness -a opencode -p "write me a fizzbuzz in Go"
 
@@ -140,7 +137,6 @@ pnpm dlx @capotej/harness -p "write me a fizzbuzz in Go"
 | `--file` | `-f` | Mount a single file into the container instead of the current directory |
 | `--model` | `-m` | Override the model used by the agent |
 | `--agent` | `-a` | Select the coding agent (`pi`, `opencode`, or `hermes`, default: `pi`) |
-| `--sh` | `-s` | Open an interactive bash shell instead of running the agent |
 | `--no-verify` | | Skip cosign image signature and provenance verification |
 
 ### Agent-specific options

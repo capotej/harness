@@ -6,8 +6,6 @@ import fs from 'fs';
 import minimist, { ParsedArgs } from 'minimist';
 
 interface Args extends ParsedArgs {
-  sh: boolean;
-  s: boolean;
   help: boolean;
   h: boolean;
   'no-verify': boolean;
@@ -127,7 +125,6 @@ Options:
   -e, --env-file <file>  Load environment variables from a file into the container
   -f, --file <file>      Mount a single file into the container instead of the current directory
   -m, --model <model>    Override the model used by the agent
-  -s, --sh               Open an interactive bash shell instead of running the agent
   -a, --agent <name>     Select the coding agent adapter: pi, opencode, hermes (default: pi)
   --no-verify            Skip cosign image signature and provenance verification
   -h, --help             Show this help message
@@ -147,9 +144,9 @@ function getImage(agent: string): string {
 }
 
 const argv = minimist<Args>(process.argv.slice(2), {
-  boolean: ['sh', 's', 'help', 'h', 'no-verify'],
+  boolean: ['help', 'h', 'no-verify'],
   string: ['env-file', 'e', 'file', 'f', 'prompt', 'p', 'model', 'm', 'agent', 'a'],
-  alias: { s: 'sh', e: 'env-file', f: 'file', p: 'prompt', m: 'model', h: 'help', a: 'agent' },
+  alias: { e: 'env-file', f: 'file', p: 'prompt', m: 'model', h: 'help', a: 'agent' },
 });
 
 if (argv.help) {
@@ -157,7 +154,6 @@ if (argv.help) {
   process.exit(0);
 }
 
-const shMode = argv.sh;
 const noVerify = argv['no-verify'];
 const envFilePath = argv['env-file'] || null;
 const fileArg = argv.file || null;
@@ -196,7 +192,7 @@ async function run(prompt: string | null): Promise<void> {
 
   const adapter = ADAPTERS[agentName];
   const adapterOptions = { prompt, model: modelArg, envFilePath };
-  const containerCmd = shMode ? ['bash'] : adapter.buildCommand(adapterOptions);
+  const containerCmd = adapter.buildCommand(adapterOptions);
   const adapterDockerArgs = adapter.extraDockerArgs?.(adapterOptions) ?? [];
 
   const interactive = process.stdin.isTTY;
@@ -230,7 +226,7 @@ async function run(prompt: string | null): Promise<void> {
   docker.on('exit', (code) => process.exit(code ?? 1));
 }
 
-if (!process.stdin.isTTY && promptArg === null && !shMode) {
+if (!process.stdin.isTTY && promptArg === null) {
   let input = '';
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk: string) => { input += chunk; });
