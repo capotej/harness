@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.2] - 2026-04-19
+
+### Summary
+The container now runs as a dedicated non-root `harness` user for improved security. Image verification is enabled by default on startup (skip with `--no-verify`). Updated `@mariozechner/pi-coding-agent` to 0.67.68.
+
+### Dependency Updates
+- updated `@mariozechner/pi-coding-agent` from 0.66.1 to 0.67.68
+
+### Changes
+- 870b6c3 rootless containers
+- 4c746f6 get rid of --sh
+- 80bb880 enable verification by default
+- 008cf77 prepare for immutable releases
+
 ## [1.3.1] - 2026-04-19
 
 ### Summary
