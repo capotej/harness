@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'
   release:
     types: [published]
 
@@ -263,6 +261,6 @@ jobs:
 
       - name: Sign the manifest
         run: |
-          FIRST_TAG=$(echo "${{ steps.tags.outputs.tags }}" | cut -d',' -f1)
-          cosign sign --yes \
-            "${FIRST_TAG}@${{ steps.create_manifest.outputs.digest }}"
+          TAG_ARGS=$(echo "${{ steps.tags.outputs.tags }}" | tr ',' '\n' | \
+            sed "s|$|@${{ steps.create_manifest.outputs.digest }}|" | tr '\n' ' ')
+          cosign sign --yes ${TAG_ARGS}

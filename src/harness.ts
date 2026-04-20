@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn } from 'child_process';
+import { spawn, execFileSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import minimist, { ParsedArgs } from 'minimist';
@@ -10,6 +10,7 @@ interface Args extends ParsedArgs {
   s: boolean;
   help: boolean;
   h: boolean;
+  'no-verify': boolean;
   'env-file'?: string;
   e?: string;
   file?: string;
@@ -65,6 +66,36 @@ class HermesAdapter implements AgentAdapter {
   }
 }
 
+const IDENTITY_REGEXP = 'https://github.com/capotej/harness/.github/workflows/docker.yml@refs/tags/';
+const OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
+
+function verifyImage(image: string): void {
+  const identityArgs = [
+    '--certificate-identity-regexp', IDENTITY_REGEXP,
+    '--certificate-oidc-issuer', OIDC_ISSUER,
+  ];
+  const execOptions = { stdio: 'pipe' as const, timeout: 30000 };
+
+  try {
+    execFileSync('cosign', ['verify', ...identityArgs, image], execOptions);
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException & { stderr?: Buffer };
+    if (e.code === 'ENOENT') {
+      console.error('harness: WARNING: cosign not found — skipping image verification (brew install cosign)');
+      return;
+    }
+    console.error(`harness: image signature verification failed for ${image}`);
+    console.error(e.stderr?.toString().trim() || e.message);
+    process.exit(1);
+  }
+
+  try {
+    execFileSync('cosign', ['verify-attestation', '--type', 'slsaprovenance', ...identityArgs, image], execOptions);
+  } catch {
+    console.error(`harness: WARNING: no provenance attestation found for ${image}`);
+  }
+}
+
 const ADAPTERS: Record<string, AgentAdapter> = {
   pi: new PiAdapter(),
   opencode: new OpenCodeAdapter(),
@@ -80,6 +111,7 @@ Options:
   -m, --model <model>    Override the model used by the agent
   -s, --sh               Open an interactive bash shell instead of running the agent
   -a, --agent <name>     Select the coding agent adapter: pi, opencode, hermes (default: pi)
+  --no-verify            Skip cosign image signature and provenance verification
   -h, --help             Show this help message
 
 You can also pipe text to harness as an implied -p:
@@ -88,7 +120,8 @@ You can also pipe text to harness as an implied -p:
 
 const workspace = process.cwd();
 const REGISTRY = 'ghcr.io/capotej/harness';
-const IMAGE_TAG = 'latest';
+const VERSION: string = require('../package.json').version;
+const IMAGE_TAG = process.env.HARNESS_IMAGE_TAG ?? VERSION;
 
 function getImage(agent: string): string {
   const tag = agent === 'pi' ? IMAGE_TAG : `${agent}-${IMAGE_TAG}`;
@@ -96,7 +129,7 @@ function getImage(agent: string): string {
 }
 
 const argv = minimist<Args>(process.argv.slice(2), {
-  boolean: ['sh', 's', 'help', 'h'],
+  boolean: ['sh', 's', 'help', 'h', 'no-verify'],
   string: ['env-file', 'e', 'file', 'f', 'prompt', 'p', 'model', 'm', 'agent', 'a'],
   alias: { s: 'sh', e: 'env-file', f: 'file', p: 'prompt', m: 'model', h: 'help', a: 'agent' },
 });
@@ -107,6 +140,7 @@ if (argv.help) {
 }
 
 const shMode = argv.sh;
+const noVerify = argv['no-verify'];
 const envFilePath = argv['env-file'] || null;
 const fileArg = argv.file || null;
 const promptArg = argv.prompt || null;
@@ -134,6 +168,12 @@ if (fileArg && fs.statSync(fileArg).isDirectory()) {
 }
 
 function run(prompt: string | null): void {
+  const image = getImage(agentName);
+
+  if (!noVerify && process.env.HARNESS_VERIFY === '1') {
+    verifyImage(image);
+  }
+
   const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
 
   const adapter = ADAPTERS[agentName];
@@ -152,8 +192,6 @@ function run(prompt: string | null): void {
   } else {
     volumeArgs = ['-v', `${workspace}:/workspace`];
   }
-
-  const image = getImage(agentName);
 
   const args = [
     'run',

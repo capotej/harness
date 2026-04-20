@@ -9,10 +9,6 @@ Automates the full release pipeline: pre-flight checks → version bump → CHAN
 
 ## Step 1: Pre-flight checks (abort on failure)
 
-**Image version check** — Read `src/harness.ts` and locate the `image` constant (e.g. `const image = 'ghcr.io/...'`). If its tag is `:latest`, stop immediately:
-
-> "Aborting: harness.ts uses `:latest` for the Docker image. Pin it to a specific commit hash before releasing."
-
 **Main bookmark is up to date** — Verify that the local `main` bookmark and `main@origin` point to the same commit. In jj, remote bookmarks use `<bookmark>@<remote>` syntax (not `origin/<bookmark>`). Run:
 
 ```bash

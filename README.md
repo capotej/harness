@@ -106,6 +106,14 @@ npx @capotej/harness -a opencode -e .env -p "write me a fizzbuzz in Go"
 
 This will start a container from the `capotej/harness` image, mount your current directory as `/workspace` inside the container, and run the selected coding agent.
 
+### Image verification
+
+By default, harness verifies that the container image was signed by the official CI workflow and includes a valid SLSA provenance attestation. This requires [cosign](https://github.com/sigstore/cosign) (`brew install cosign`). If cosign is not installed, harness prints a warning and proceeds. To skip verification:
+
+```bash
+npx @capotej/harness --no-verify -p "write me a fizzbuzz in Go"
+```
+
 You can also install globally and use the `harness` command directly:
 
 ```bash
@@ -133,6 +141,7 @@ pnpm dlx @capotej/harness -p "write me a fizzbuzz in Go"
 | `--model` | `-m` | Override the model used by the agent |
 | `--agent` | `-a` | Select the coding agent (`pi`, `opencode`, or `hermes`, default: `pi`) |
 | `--sh` | `-s` | Open an interactive bash shell instead of running the agent |
+| `--no-verify` | | Skip cosign image signature and provenance verification |
 
 ### Agent-specific options
 
