@@ -1,18 +1,61 @@
 ARG BASE_IMAGE=ghcr.io/capotej/harness:latest
+ARG UV_DIGEST=sha256:b1e699368d24c57cda93c338a57a8c5a119009ba809305cc8e86986d4a006754
+
+FROM ghcr.io/astral-sh/uv@${UV_DIGEST} AS uv-src
+
 FROM ${BASE_IMAGE}
 
 USER root
 
-COPY --from=ghcr.io/astral-sh/uv:0.11.6 /uv /usr/local/bin/uv
-
+ARG UV_VERSION=0.11.6
+ARG UV_DIGEST=sha256:b1e699368d24c57cda93c338a57a8c5a119009ba809305cc8e86986d4a006754
+ARG COSIGN_VERSION=3.0.6
+ARG COSIGN_AMD64_SHA256=c956e5dfcac53d52bcf058360d579472f0c1d2d9b69f55209e256fe7783f4c74
+ARG COSIGN_ARM64_SHA256=bedac92e8c3729864e13d4a17048007cfafa79d5deca993a43a90ffe018ef2b8
 ARG TARGETARCH
+
 RUN set -eux && \
     ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
-    COSIGN_VERSION=3.0.6 && \
-    TIRITH_VERSION=0.2.12 && \
     curl -fsSL "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-${ARCH}" \
         -o /usr/local/bin/cosign && \
+    case "${ARCH}" in \
+        amd64) EXPECTED="${COSIGN_AMD64_SHA256}" ;; \
+        arm64) EXPECTED="${COSIGN_ARM64_SHA256}" ;; \
+        *) echo "unsupported arch: ${ARCH}"; exit 1 ;; \
+    esac && \
+    echo "${EXPECTED}  /usr/local/bin/cosign" | sha256sum --check --strict && \
     chmod +x /usr/local/bin/cosign && \
+    curl -fsSL "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign_checksums.txt" \
+        -o /tmp/cosign_checksums.txt && \
+    curl -fsSL "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign_checksums.txt.sigstore.json" \
+        -o /tmp/cosign_checksums.txt.sigstore.json && \
+    cosign verify-blob \
+        --new-bundle-format \
+        --bundle /tmp/cosign_checksums.txt.sigstore.json \
+        --certificate-identity "keyless@projectsigstore.iam.gserviceaccount.com" \
+        --certificate-oidc-issuer "https://accounts.google.com" \
+        /tmp/cosign_checksums.txt && \
+    rm -f /tmp/cosign_checksums.txt /tmp/cosign_checksums.txt.sigstore.json
+
+RUN set -eux && \
+    curl -fsSL -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/astral-sh/uv/attestations/${UV_DIGEST}" \
+        -o /tmp/uv-attestations.json && \
+    jq '.attestations[0].bundle' /tmp/uv-attestations.json > /tmp/uv-bundle.json && \
+    cosign verify-blob-attestation \
+        --new-bundle-format \
+        --bundle /tmp/uv-bundle.json \
+        --type slsaprovenance1 \
+        --certificate-identity-regexp "https://github.com/astral-sh/uv/.*" \
+        --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+        --check-claims=false && \
+    rm -f /tmp/uv-attestations.json /tmp/uv-bundle.json
+
+COPY --from=uv-src /uv /usr/local/bin/uv
+
+RUN set -eux && \
+    ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
+    TIRITH_VERSION=0.2.12 && \
     case "${ARCH}" in \
         amd64) TIRITH_ARCH=x86_64-unknown-linux-gnu ;; \
         arm64) TIRITH_ARCH=aarch64-unknown-linux-gnu ;; \
