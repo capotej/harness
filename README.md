@@ -139,6 +139,12 @@ pnpm dlx @capotej/harness -p "write me a fizzbuzz in Go"
 | `--agent` | `-a` | Select the coding agent (`pi`, `opencode`, or `hermes`, default: `pi`) |
 | `--no-verify` | | Skip cosign image signature and provenance verification |
 
+### Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `HARNESS_IMAGE_TAG` | Override the Docker image tag (defaults to the current package version) |
+
 ### Agent-specific options
 
 **`pi`** — model is passed directly as a CLI argument. Supports any provider key in the env file.

@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.3] - 2026-04-21
+
+### Summary
+The hermes sub-image now includes [`tirith`](https://github.com/sheeki03/tirith) v0.2.12 and adds full cosign attestation verification for the `uv` binary at build time. The README documents the `HARNESS_IMAGE_TAG` environment variable for overriding the Docker image tag.
+
+### Dependency Updates
+- added `tirith` 0.2.12 to hermes image
+- added cosign attestation verification for `uv` in hermes image
+
+### Changes
+- fcb209d verify uv and cosign
+- ae3c7da install tirith in hermes image
+
 ## [1.3.2] - 2026-04-19
 
 ### Summary
