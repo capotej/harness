@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.0] - 2026-04-22
+
+### Summary
+Interactive runs now persist agent state by default: harness creates a `.harness/<agent>/` directory in your working directory and bind-mounts it into the container, letting agents resume sessions and retain memories across invocations. One-shot runs (`-p "..."` or piped stdin) remain implicitly ephemeral; use `--ephemeral` to force-disable persistence for interactive runs. Image signature verification results are now cached per digest to avoid redundant cosign checks on repeated invocations.
+
+### Changes
+- fef0a0b cache the image signature verification per digest
+- 2f56b75 persist agent data by default in .harness, --ephemeral to opt out
+
 ## [1.3.3] - 2026-04-21
 
 ### Summary
