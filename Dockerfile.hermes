@@ -87,16 +87,16 @@ RUN apt-get update && \
     && uv venv venv --python python3 \
     && VIRTUAL_ENV=/opt/hermes-agent/venv uv pip install --no-cache-dir -e "." \
     && ln -sf /opt/hermes-agent/venv/bin/hermes /usr/local/bin/hermes \
-    && mkdir -p /home/harness/.hermes-local/{sessions,logs,hooks,memories,skills,plans,workspace} \
-    && mkdir -p /home/harness/.hermes-openrouter/{sessions,logs,hooks,memories,skills,plans,workspace} \
-    && cp /opt/hermes-agent/.env.example /home/harness/.hermes-local/.env \
-    && cp /opt/hermes-agent/.env.example /home/harness/.hermes-openrouter/.env \
-    && chown -R harness:harness /home/harness/.hermes-local /home/harness/.hermes-openrouter \
+    && mkdir -p /etc/harness/hermes-defaults/local/{sessions,logs,hooks,memories,skills,plans,workspace} \
+    && mkdir -p /etc/harness/hermes-defaults/openrouter/{sessions,logs,hooks,memories,skills,plans,workspace} \
+    && cp /opt/hermes-agent/.env.example /etc/harness/hermes-defaults/local/.env \
+    && cp /opt/hermes-agent/.env.example /etc/harness/hermes-defaults/openrouter/.env \
+    && chown -R harness:harness /etc/harness/hermes-defaults \
     && rm -rf /opt/hermes-agent/.git /root/.cache/uv \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --chown=harness:harness hermes/local.yaml /home/harness/.hermes-local/config.yaml
-COPY --chown=harness:harness hermes/openrouter.yaml /home/harness/.hermes-openrouter/config.yaml
+COPY hermes/local.yaml /etc/harness/hermes-defaults/local/config.yaml
+COPY hermes/openrouter.yaml /etc/harness/hermes-defaults/openrouter/config.yaml
 
 COPY entrypoint-hermes.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

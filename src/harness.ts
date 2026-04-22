@@ -9,6 +9,7 @@ interface Args extends ParsedArgs {
   help: boolean;
   h: boolean;
   'no-verify': boolean;
+  ephemeral: boolean;
   'env-file'?: string;
   e?: string;
   file?: string;
@@ -27,9 +28,15 @@ interface AgentOptions {
   envFilePath: string | null;
 }
 
+interface PersistMount {
+  hostSubpath: string;
+  containerPath: string;
+}
+
 interface AgentAdapter {
   buildCommand(options: AgentOptions): string[];
   extraDockerArgs?(options: AgentOptions): string[];
+  persistMounts?(): PersistMount[];
 }
 
 class PiAdapter implements AgentAdapter {
@@ -39,6 +46,10 @@ class PiAdapter implements AgentAdapter {
       return ['pi', '-p', prompt, ...modelArgs];
     }
     return ['pi', ...modelArgs];
+  }
+
+  persistMounts(): PersistMount[] {
+    return [{ hostSubpath: '', containerPath: '/home/harness/.pi/agent' }];
   }
 }
 
@@ -53,6 +64,14 @@ class OpenCodeAdapter implements AgentAdapter {
   extraDockerArgs({ model }: AgentOptions): string[] {
     return model ? ['-e', `OPENCODE_MODEL=${model}`] : [];
   }
+
+  persistMounts(): PersistMount[] {
+    return [
+      { hostSubpath: 'config', containerPath: '/home/harness/.config/opencode' },
+      { hostSubpath: 'share',  containerPath: '/home/harness/.local/share/opencode' },
+      { hostSubpath: 'state',  containerPath: '/home/harness/.local/state/opencode' },
+    ];
+  }
 }
 
 class HermesAdapter implements AgentAdapter {
@@ -61,6 +80,13 @@ class HermesAdapter implements AgentAdapter {
     if (model) args.push('-m', model);
     if (prompt !== null) args.push('-q', prompt);
     return args;
+  }
+
+  persistMounts(): PersistMount[] {
+    return [
+      { hostSubpath: 'local',      containerPath: '/home/harness/.hermes-local' },
+      { hostSubpath: 'openrouter', containerPath: '/home/harness/.hermes-openrouter' },
+    ];
   }
 }
 
@@ -112,11 +138,18 @@ async function verifyImage(image: string): Promise<void> {
   }
 }
 
-const ADAPTERS: Record<string, AgentAdapter> = {
+const AGENT_NAMES = ['pi', 'opencode', 'hermes'] as const;
+type AgentName = typeof AGENT_NAMES[number];
+
+const ADAPTERS: Record<AgentName, AgentAdapter> = {
   pi: new PiAdapter(),
   opencode: new OpenCodeAdapter(),
   hermes: new HermesAdapter(),
 };
+
+function isAgentName(name: string): name is AgentName {
+  return (AGENT_NAMES as readonly string[]).includes(name);
+}
 
 const USAGE = `Usage: harness [options]
 
@@ -127,6 +160,7 @@ Options:
   -m, --model <model>    Override the model used by the agent
   -a, --agent <name>     Select the coding agent adapter: pi, opencode, hermes (default: pi)
   --no-verify            Skip cosign image signature and provenance verification
+  --ephemeral            Disable session persistence (implied by -p and piped stdin)
   -h, --help             Show this help message
 
 You can also pipe text to harness as an implied -p:
@@ -144,7 +178,7 @@ function getImage(agent: string): string {
 }
 
 const argv = minimist<Args>(process.argv.slice(2), {
-  boolean: ['help', 'h', 'no-verify'],
+  boolean: ['help', 'h', 'no-verify', 'ephemeral'],
   string: ['env-file', 'e', 'file', 'f', 'prompt', 'p', 'model', 'm', 'agent', 'a'],
   alias: { e: 'env-file', f: 'file', p: 'prompt', m: 'model', h: 'help', a: 'agent' },
 });
@@ -159,12 +193,16 @@ const envFilePath = argv['env-file'] || null;
 const fileArg = argv.file || null;
 const promptArg = argv.prompt || null;
 const modelArg = argv.model || null;
-const agentName = argv.agent ?? 'pi';
+const effectiveEphemeral = argv.ephemeral || promptArg !== null || !process.stdin.isTTY;
 
-if (!ADAPTERS[agentName]) {
-  console.error(`harness: unknown agent: "${agentName}". Available: ${Object.keys(ADAPTERS).join(', ')}`);
-  process.exit(1);
-}
+const agentName: AgentName = (() => {
+  const name = argv.agent ?? 'pi';
+  if (!isAgentName(name)) {
+    console.error(`harness: unknown agent: "${name}". Available: ${Object.keys(ADAPTERS).join(', ')}`);
+    process.exit(1);
+  }
+  return name;
+})();
 
 if (envFilePath && !fs.existsSync(envFilePath)) {
   console.error(`harness: env file not found: ${envFilePath}`);
@@ -205,6 +243,15 @@ async function run(prompt: string | null): Promise<void> {
     volumeArgs = ['-v', `${absFile}:/workspace/${fileName}`];
   } else {
     volumeArgs = ['-v', `${workspace}:/workspace`];
+    if (!effectiveEphemeral) {
+      const persistRoot = path.join(workspace, '.harness', agentName);
+      const mounts = adapter.persistMounts?.() ?? [];
+      for (const mount of mounts) {
+        const hostFullPath = path.join(persistRoot, mount.hostSubpath);
+        fs.mkdirSync(hostFullPath, { recursive: true });
+        volumeArgs.push('-v', `${hostFullPath}:${mount.containerPath}`);
+      }
+    }
   }
 
   const args = [

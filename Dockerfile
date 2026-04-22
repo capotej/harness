@@ -30,10 +30,10 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate && \
     pnpm install -g @mariozechner/pi-coding-agent@0.67.68 && \
     pnpm store prune && \
     rm -rf ~/.cache/pnpm ~/.npm && \
-    mkdir -p /home/harness/.pi/agent && \
-    chown -R harness:harness /home/harness/.pi/agent /usr/local/share/pnpm
+    mkdir -p /etc/harness/pi-defaults && \
+    chown -R harness:harness /usr/local/share/pnpm
 
-COPY --chown=harness:harness pi/models.json /home/harness/.pi/agent/models.json
+COPY pi/models.json /etc/harness/pi-defaults/models.json
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

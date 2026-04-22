@@ -111,6 +111,14 @@ By default, harness verifies that the container image was signed by the official
 npx @capotej/harness --no-verify -p "write me a fizzbuzz in Go"
 ```
 
+### Persistence
+
+For interactive runs (no `-p` and no piped stdin), harness creates a `.harness/<agent>/` directory in your working directory and bind-mounts it into the container. This lets agents resume sessions, skip database migrations on repeat runs, and retain memories across invocations.
+
+One-shot runs (`-p "..."` or piped stdin) are implicitly ephemeral — no `.harness/` directory is created. Use `--ephemeral` to force-disable persistence for interactive runs.
+
+Add `.harness/` to your `.gitignore` to avoid committing agent state to your repository.
+
 You can also install globally and use the `harness` command directly:
 
 ```bash
@@ -138,6 +146,7 @@ pnpm dlx @capotej/harness -p "write me a fizzbuzz in Go"
 | `--model` | `-m` | Override the model used by the agent |
 | `--agent` | `-a` | Select the coding agent (`pi`, `opencode`, or `hermes`, default: `pi`) |
 | `--no-verify` | | Skip cosign image signature and provenance verification |
+| `--ephemeral` | | Disable session persistence (implied by `-p` and piped stdin) |
 
 ### Environment variables
 
