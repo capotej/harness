@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { spawn, execFile } from 'child_process';
+import { spawn, execFile, execFileSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import minimist, { ParsedArgs } from 'minimist';
 
 interface Args extends ParsedArgs {
@@ -97,6 +98,54 @@ interface CosignError extends NodeJS.ErrnoException {
   stderr?: string;
 }
 
+interface CacheFile {
+  version: number;
+  verified: Record<string, { tag: string; verifiedAt: string }>;
+}
+
+const CACHE_VERSION = 1;
+
+function cachePath(): string {
+  const base = process.env.XDG_CACHE_HOME || path.join(os.homedir(), '.cache');
+  return path.join(base, 'harness', 'cosign-verified.json');
+}
+
+function inspectLocalImage(image: string): { exists: boolean; digest: string | null } {
+  try {
+    const out = execFileSync(
+      'docker',
+      ['image', 'inspect', '--format', '{{if .RepoDigests}}{{index .RepoDigests 0}}{{end}}', image],
+      { stdio: ['ignore', 'pipe', 'ignore'], timeout: 5000 }
+    ).toString().trim();
+    return { exists: true, digest: /@sha256:[0-9a-f]{64}$/.test(out) ? out : null };
+  } catch {
+    return { exists: false, digest: null };
+  }
+}
+
+function readCache(): CacheFile {
+  try {
+    const raw = fs.readFileSync(cachePath(), 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.version === CACHE_VERSION && parsed.verified && typeof parsed.verified === 'object') {
+      return parsed as CacheFile;
+    }
+  } catch {}
+  return { version: CACHE_VERSION, verified: {} };
+}
+
+function writeCacheAtomic(cache: CacheFile): void {
+  try {
+    const file = cachePath();
+    fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
+    const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(cache, null, 2), { mode: 0o600 });
+    fs.renameSync(tmp, file);
+  } catch {
+    // best-effort; never break verify path
+  }
+}
+
 function cosign(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     execFile('cosign', args, { timeout: 30000 }, (err, _stdout, stderr) => {
@@ -112,13 +161,45 @@ function cosign(args: string[]): Promise<void> {
 }
 
 async function verifyImage(image: string): Promise<void> {
+  let { exists, digest: digestRef } = inspectLocalImage(image);
+  const cache = readCache();
+
+  if (digestRef && cache.verified[digestRef]) {
+    return;
+  }
+
+  if (exists && !digestRef) {
+    console.error(`harness: refusing to verify ${image}: image exists locally but has no registry digest (locally-built?).`);
+    console.error(`harness: verifying the tag would check registry bytes, not the local image docker would run.`);
+    console.error(`harness: use --no-verify, or set HARNESS_IMAGE_TAG for an implicit skip.`);
+    process.exit(1);
+  }
+
+  if (!digestRef) {
+    console.error(`harness: pulling ${image} for verification...`);
+    try {
+      execFileSync('docker', ['pull', image], { stdio: ['ignore', 'inherit', 'inherit'], timeout: 600000 });
+    } catch {
+      console.error(`harness: docker pull failed for ${image}`);
+      process.exit(1);
+    }
+    digestRef = inspectLocalImage(image).digest;
+    if (!digestRef) {
+      console.error(`harness: failed to resolve digest for ${image} after pull`);
+      process.exit(1);
+    }
+    if (cache.verified[digestRef]) {
+      return;
+    }
+  }
+
   const identityArgs = [
     '--certificate-identity-regexp', IDENTITY_REGEXP,
     '--certificate-oidc-issuer', OIDC_ISSUER,
   ];
 
-  const verifyP = cosign(['verify', ...identityArgs, image]);
-  const attestP = cosign(['verify-attestation', '--type', 'slsaprovenance', ...identityArgs, image]);
+  const verifyP = cosign(['verify', ...identityArgs, digestRef]);
+  const attestP = cosign(['verify-attestation', '--type', 'slsaprovenance', ...identityArgs, digestRef]);
 
   const [verifyResult, attestResult] = await Promise.allSettled([verifyP, attestP]);
 
@@ -128,14 +209,17 @@ async function verifyImage(image: string): Promise<void> {
       console.error('harness: WARNING: cosign not found — skipping image verification (brew install cosign)');
       return;
     }
-    console.error(`harness: image signature verification failed for ${image}`);
+    console.error(`harness: image signature verification failed for ${digestRef}`);
     console.error(e.stderr?.trim() || e.message);
     process.exit(1);
   }
 
   if (attestResult.status === 'rejected') {
-    console.error(`harness: WARNING: no provenance attestation found for ${image}`);
+    console.error(`harness: WARNING: no provenance attestation found for ${digestRef}`);
   }
+
+  cache.verified[digestRef] = { tag: image, verifiedAt: new Date().toISOString() };
+  writeCacheAtomic(cache);
 }
 
 const AGENT_NAMES = ['pi', 'opencode', 'hermes'] as const;
@@ -223,7 +307,11 @@ async function run(prompt: string | null): Promise<void> {
   const image = getImage(agentName);
 
   if (!noVerify) {
-    await verifyImage(image);
+    if (process.env.HARNESS_IMAGE_TAG) {
+      console.error(`harness: HARNESS_IMAGE_TAG is set; skipping cosign verification for ${image}`);
+    } else {
+      await verifyImage(image);
+    }
   }
 
   const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
