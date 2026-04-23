@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.1] - 2026-04-22
+
+### Summary
+Housekeeping release: adds a LICENSE file, pins the pnpm package manager version, and switches the Dockerfile shell to bash with pipefail — fixing `mkdir` brace expansion failures in the hermes image.
+
+### Changes
+- 1c3661a set pnpm version
+- 8b9c442 pnpm lint
+- eea47e1 add LICENSE
+
 ## [1.4.0] - 2026-04-22
 
 ### Summary
