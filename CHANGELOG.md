@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.3] - 2026-04-23
+
+### Summary
+Adds `croniter 6.2.2` to the hermes agent image, enabling cron expression parsing and scheduling support within the hermes environment.
+
+### Dependency Updates
+- added `croniter` 6.2.2 to hermes image
+
+### Changes
+- e139a0e add croniter to hermes
+
 ## [1.4.2] - 2026-04-22
 
 ### Summary
