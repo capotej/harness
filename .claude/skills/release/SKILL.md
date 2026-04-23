@@ -142,9 +142,38 @@ gh release create v<version> \
   --notes "<changelog-entry>"
 ```
 
+## Step 11: Post-flight — verify CI succeeded
+
+After creating the GitHub release, poll until the release-triggered workflow run completes:
+
+```bash
+gh run list --repo <owner>/<repo> --event release --limit 1
+```
+
+Use the run ID to watch for completion:
+
+```bash
+gh run view <run-id> --repo <owner>/<repo>
+```
+
+Check that **all jobs** show `✓` (success). Pay particular attention to:
+- `build-variant (hermes, ...)` — most likely to fail due to the uv attestation verification step
+- `merge-variant (hermes)` and `merge-variant (opencode)` — these push the versioned image tags
+
+If any job failed, run:
+
+```bash
+gh run rerun <run-id> --failed --repo <owner>/<repo>
+```
+
+Then wait for it to complete and verify again before reporting success.
+
+Only report the release as complete once the entire workflow is green.
+
 ## Final report
 
 Tell the user:
 - Version released
 - The CHANGELOG entry added
 - GitHub release URL (from `gh release create` stdout)
+- CI status (all jobs green)
