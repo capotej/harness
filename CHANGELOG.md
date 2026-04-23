@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.2] - 2026-04-22
+
+### Summary
+Adds `python-telegram-bot 22.7` to the hermes agent image, enabling Telegram bot integration support within the hermes environment.
+
+### Dependency Updates
+- added `python-telegram-bot` 22.7 to hermes image
+
+### Changes
+- 7a97c2f add python-telegram-bot=22.7 to hermes
+
 ## [1.4.1] - 2026-04-22
 
 ### Summary
