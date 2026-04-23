@@ -36,7 +36,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract short SHA
-        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_ENV"
 
       - name: Extract metadata
         id: meta
@@ -101,7 +101,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract short SHA
-        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_ENV"
 
       - name: Extract metadata
         id: meta
@@ -119,16 +119,18 @@ jobs:
         id: create_manifest
         working-directory: /tmp/digests
         run: |
+          # shellcheck disable=SC2046
           docker buildx imagetools create \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
           DIGEST=$(docker buildx imagetools inspect \
             "ghcr.io/${{ github.repository }}:${{ env.SHORT_SHA }}" \
             --format '{{.Manifest.Digest}}')
-          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Sign the manifest
         run: |
+          # shellcheck disable=SC2046
           cosign sign --yes \
             $(jq -cr '.tags | map(. + "@${{ steps.create_manifest.outputs.digest }}") | join(" ")' \
               <<< "$DOCKER_METADATA_OUTPUT_JSON")
@@ -175,7 +177,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract short SHA
-        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_ENV"
 
       - name: Build and push by digest
         id: build
@@ -236,7 +238,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract short SHA
-        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_ENV"
 
       - name: Generate tags
         id: tags
@@ -247,7 +249,7 @@ jobs:
             VERSION="${GITHUB_REF#refs/tags/v}"
             TAGS="${TAGS},${REPO}:${{ matrix.variant }}-${VERSION}"
           fi
-          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
@@ -257,6 +259,7 @@ jobs:
         working-directory: /tmp/digests
         run: |
           TAG_ARGS=$(echo "${{ steps.tags.outputs.tags }}" | tr ',' '\n' | sed 's/^/-t /' | tr '\n' ' ')
+          # shellcheck disable=SC2046,SC2086
           docker buildx imagetools create \
             ${TAG_ARGS} \
             $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
@@ -264,12 +267,13 @@ jobs:
           DIGEST=$(docker buildx imagetools inspect \
             "${FIRST_TAG}" \
             --format '{{.Manifest.Digest}}')
-          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Sign the manifest
         run: |
           TAG_ARGS=$(echo "${{ steps.tags.outputs.tags }}" | tr ',' '\n' | \
             sed "s|$|@${{ steps.create_manifest.outputs.digest }}|" | tr '\n' ' ')
+          # shellcheck disable=SC2086
           cosign sign --yes ${TAG_ARGS}
 
       - name: Attest build provenance

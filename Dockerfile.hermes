@@ -14,6 +14,8 @@ ARG COSIGN_AMD64_SHA256=c956e5dfcac53d52bcf058360d579472f0c1d2d9b69f55209e256fe7
 ARG COSIGN_ARM64_SHA256=bedac92e8c3729864e13d4a17048007cfafa79d5deca993a43a90ffe018ef2b8
 ARG TARGETARCH
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 RUN set -eux && \
     ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
     curl -fsSL "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-${ARCH}" \
@@ -74,18 +76,18 @@ RUN set -eux && \
         --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
         /tmp/checksums.txt && \
     curl -fsSL "https://github.com/sheeki03/tirith/releases/download/v${TIRITH_VERSION}/${TIRITH_FILE}" \
-        -o /tmp/${TIRITH_FILE} && \
-    (cd /tmp && grep "${TIRITH_FILE}" checksums.txt | sha256sum --check --strict) && \
-    tar -xzf /tmp/${TIRITH_FILE} -C /usr/local/bin/ tirith && \
-    rm -f /tmp/checksums.txt /tmp/checksums.txt.pem /tmp/checksums.txt.sig /tmp/${TIRITH_FILE}
+        -o "/tmp/${TIRITH_FILE}" && \
+    grep "${TIRITH_FILE}" /tmp/checksums.txt | sed "s|${TIRITH_FILE}|/tmp/${TIRITH_FILE}|" | sha256sum --check --strict && \
+    tar -xzf "/tmp/${TIRITH_FILE}" -C /usr/local/bin/ tirith && \
+    rm -f /tmp/checksums.txt /tmp/checksums.txt.pem /tmp/checksums.txt.sig "/tmp/${TIRITH_FILE}"
 
+# hadolint ignore=DL3008
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         python3 python3-dev python3-venv build-essential git libffi-dev \
     && git clone --depth 1 --branch v2026.4.16 https://github.com/NousResearch/hermes-agent.git /opt/hermes-agent \
-    && cd /opt/hermes-agent \
-    && uv venv venv --python python3 \
-    && VIRTUAL_ENV=/opt/hermes-agent/venv uv pip install --no-cache-dir -e "." \
+    && uv venv /opt/hermes-agent/venv --python python3 \
+    && VIRTUAL_ENV=/opt/hermes-agent/venv uv pip install --no-cache-dir -e /opt/hermes-agent \
     && ln -sf /opt/hermes-agent/venv/bin/hermes /usr/local/bin/hermes \
     && mkdir -p /etc/harness/hermes-defaults/local/{sessions,logs,hooks,memories,skills,plans,workspace} \
     && mkdir -p /etc/harness/hermes-defaults/openrouter/{sessions,logs,hooks,memories,skills,plans,workspace} \

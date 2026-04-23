@@ -1,0 +1,3 @@
+ignore:
+  # docker.yml uses common GH Actions patterns (>> $GITHUB_ENV) that trigger shellcheck
+  - 'shellcheck reported issue'

@@ -13,13 +13,16 @@ pnpm build          # Compile TypeScript → bin/harness.js
 make build          # Same via Makefile
 make image          # Build Docker image: ghcr.io/capotej/harness
 pnpm link --global  # Make `harness` CLI available globally for local testing
+pnpm lint           # Run all linters (biome, markdownlint, shellcheck, hadolint, actionlint)
+pnpm format         # Auto-format with Biome
 ```
 
-No test suite or linter is configured.
+No test suite is configured. System linters (`shellcheck`, `hadolint`, `actionlint`) must be installed separately (`brew install shellcheck hadolint actionlint`).
 
 ## Architecture
 
 All CLI logic lives in `src/harness.ts` (compiles to `bin/harness.js`). It:
+
 1. Parses CLI args via `minimist`
 2. Selects an adapter (`PiAdapter` or `OpenCodeAdapter`) based on `--agent` flag
 3. Constructs and spawns a `docker run` command that mounts `$PWD` and passes the prompt via stdin or `-e`

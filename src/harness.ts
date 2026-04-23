@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
-import { spawn, execFile, execFileSync } from 'child_process';
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
-import minimist, { ParsedArgs } from 'minimist';
+import { execFile, execFileSync, spawn } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import minimist, { type ParsedArgs } from "minimist";
 
 interface Args extends ParsedArgs {
   help: boolean;
   h: boolean;
-  'no-verify': boolean;
+  "no-verify": boolean;
   ephemeral: boolean;
-  'env-file'?: string;
+  "env-file"?: string;
   e?: string;
   file?: string;
   f?: string;
@@ -42,57 +42,70 @@ interface AgentAdapter {
 
 class PiAdapter implements AgentAdapter {
   buildCommand({ prompt, model }: AgentOptions): string[] {
-    const modelArgs = model ? ['--model', model] : [];
+    const modelArgs = model ? ["--model", model] : [];
     if (prompt !== null) {
-      return ['pi', '-p', prompt, ...modelArgs];
+      return ["pi", "-p", prompt, ...modelArgs];
     }
-    return ['pi', ...modelArgs];
+    return ["pi", ...modelArgs];
   }
 
   persistMounts(): PersistMount[] {
-    return [{ hostSubpath: '', containerPath: '/home/harness/.pi/agent' }];
+    return [{ hostSubpath: "", containerPath: "/home/harness/.pi/agent" }];
   }
 }
 
 class OpenCodeAdapter implements AgentAdapter {
   buildCommand({ prompt }: AgentOptions): string[] {
     if (prompt !== null) {
-      return ['opencode', 'run', prompt];
+      return ["opencode", "run", prompt];
     }
-    return ['opencode'];
+    return ["opencode"];
   }
 
   extraDockerArgs({ model }: AgentOptions): string[] {
-    return model ? ['-e', `OPENCODE_MODEL=${model}`] : [];
+    return model ? ["-e", `OPENCODE_MODEL=${model}`] : [];
   }
 
   persistMounts(): PersistMount[] {
     return [
-      { hostSubpath: 'config', containerPath: '/home/harness/.config/opencode' },
-      { hostSubpath: 'share',  containerPath: '/home/harness/.local/share/opencode' },
-      { hostSubpath: 'state',  containerPath: '/home/harness/.local/state/opencode' },
+      {
+        hostSubpath: "config",
+        containerPath: "/home/harness/.config/opencode",
+      },
+      {
+        hostSubpath: "share",
+        containerPath: "/home/harness/.local/share/opencode",
+      },
+      {
+        hostSubpath: "state",
+        containerPath: "/home/harness/.local/state/opencode",
+      },
     ];
   }
 }
 
 class HermesAdapter implements AgentAdapter {
   buildCommand({ prompt, model }: AgentOptions): string[] {
-    const args = ['hermes', 'chat'];
-    if (model) args.push('-m', model);
-    if (prompt !== null) args.push('-q', prompt);
+    const args = ["hermes", "chat"];
+    if (model) args.push("-m", model);
+    if (prompt !== null) args.push("-q", prompt);
     return args;
   }
 
   persistMounts(): PersistMount[] {
     return [
-      { hostSubpath: 'local',      containerPath: '/home/harness/.hermes-local' },
-      { hostSubpath: 'openrouter', containerPath: '/home/harness/.hermes-openrouter' },
+      { hostSubpath: "local", containerPath: "/home/harness/.hermes-local" },
+      {
+        hostSubpath: "openrouter",
+        containerPath: "/home/harness/.hermes-openrouter",
+      },
     ];
   }
 }
 
-const IDENTITY_REGEXP = 'https://github.com/capotej/harness/.github/workflows/docker.yml@refs/tags/';
-const OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
+const IDENTITY_REGEXP =
+  "https://github.com/capotej/harness/.github/workflows/docker.yml@refs/tags/";
+const OIDC_ISSUER = "https://token.actions.githubusercontent.com";
 
 interface CosignError extends NodeJS.ErrnoException {
   stderr?: string;
@@ -106,18 +119,32 @@ interface CacheFile {
 const CACHE_VERSION = 1;
 
 function cachePath(): string {
-  const base = process.env.XDG_CACHE_HOME || path.join(os.homedir(), '.cache');
-  return path.join(base, 'harness', 'cosign-verified.json');
+  const base = process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache");
+  return path.join(base, "harness", "cosign-verified.json");
 }
 
-function inspectLocalImage(image: string): { exists: boolean; digest: string | null } {
+function inspectLocalImage(image: string): {
+  exists: boolean;
+  digest: string | null;
+} {
   try {
     const out = execFileSync(
-      'docker',
-      ['image', 'inspect', '--format', '{{if .RepoDigests}}{{index .RepoDigests 0}}{{end}}', image],
-      { stdio: ['ignore', 'pipe', 'ignore'], timeout: 5000 }
-    ).toString().trim();
-    return { exists: true, digest: /@sha256:[0-9a-f]{64}$/.test(out) ? out : null };
+      "docker",
+      [
+        "image",
+        "inspect",
+        "--format",
+        "{{if .RepoDigests}}{{index .RepoDigests 0}}{{end}}",
+        image,
+      ],
+      { stdio: ["ignore", "pipe", "ignore"], timeout: 5000 },
+    )
+      .toString()
+      .trim();
+    return {
+      exists: true,
+      digest: /@sha256:[0-9a-f]{64}$/.test(out) ? out : null,
+    };
   } catch {
     return { exists: false, digest: null };
   }
@@ -125,9 +152,14 @@ function inspectLocalImage(image: string): { exists: boolean; digest: string | n
 
 function readCache(): CacheFile {
   try {
-    const raw = fs.readFileSync(cachePath(), 'utf8');
+    const raw = fs.readFileSync(cachePath(), "utf8");
     const parsed = JSON.parse(raw);
-    if (parsed && parsed.version === CACHE_VERSION && parsed.verified && typeof parsed.verified === 'object') {
+    if (
+      parsed &&
+      parsed.version === CACHE_VERSION &&
+      parsed.verified &&
+      typeof parsed.verified === "object"
+    ) {
       return parsed as CacheFile;
     }
   } catch {}
@@ -148,7 +180,7 @@ function writeCacheAtomic(cache: CacheFile): void {
 
 function cosign(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    execFile('cosign', args, { timeout: 30000 }, (err, _stdout, stderr) => {
+    execFile("cosign", args, { timeout: 30000 }, (err, _stdout, stderr) => {
       if (err) {
         const e = err as CosignError;
         e.stderr = stderr;
@@ -169,23 +201,34 @@ async function verifyImage(image: string): Promise<void> {
   }
 
   if (exists && !digestRef) {
-    console.error(`harness: refusing to verify ${image}: image exists locally but has no registry digest (locally-built?).`);
-    console.error(`harness: verifying the tag would check registry bytes, not the local image docker would run.`);
-    console.error(`harness: use --no-verify, or set HARNESS_IMAGE_TAG for an implicit skip.`);
+    console.error(
+      `harness: refusing to verify ${image}: image exists locally but has no registry digest (locally-built?).`,
+    );
+    console.error(
+      "harness: verifying the tag would check registry bytes, not the local image docker would run.",
+    );
+    console.error(
+      "harness: use --no-verify, or set HARNESS_IMAGE_TAG for an implicit skip.",
+    );
     process.exit(1);
   }
 
   if (!digestRef) {
     console.error(`harness: pulling ${image} for verification...`);
     try {
-      execFileSync('docker', ['pull', image], { stdio: ['ignore', 'inherit', 'inherit'], timeout: 600000 });
+      execFileSync("docker", ["pull", image], {
+        stdio: ["ignore", "inherit", "inherit"],
+        timeout: 600000,
+      });
     } catch {
       console.error(`harness: docker pull failed for ${image}`);
       process.exit(1);
     }
     digestRef = inspectLocalImage(image).digest;
     if (!digestRef) {
-      console.error(`harness: failed to resolve digest for ${image} after pull`);
+      console.error(
+        `harness: failed to resolve digest for ${image} after pull`,
+      );
       process.exit(1);
     }
     if (cache.verified[digestRef]) {
@@ -194,36 +237,56 @@ async function verifyImage(image: string): Promise<void> {
   }
 
   const identityArgs = [
-    '--certificate-identity-regexp', IDENTITY_REGEXP,
-    '--certificate-oidc-issuer', OIDC_ISSUER,
+    "--certificate-identity-regexp",
+    IDENTITY_REGEXP,
+    "--certificate-oidc-issuer",
+    OIDC_ISSUER,
   ];
 
-  const verifyP = cosign(['verify', ...identityArgs, digestRef]);
-  const attestP = cosign(['verify-attestation', '--type', 'slsaprovenance', ...identityArgs, digestRef]);
+  const verifyP = cosign(["verify", ...identityArgs, digestRef]);
+  const attestP = cosign([
+    "verify-attestation",
+    "--type",
+    "slsaprovenance",
+    ...identityArgs,
+    digestRef,
+  ]);
 
-  const [verifyResult, attestResult] = await Promise.allSettled([verifyP, attestP]);
+  const [verifyResult, attestResult] = await Promise.allSettled([
+    verifyP,
+    attestP,
+  ]);
 
-  if (verifyResult.status === 'rejected') {
+  if (verifyResult.status === "rejected") {
     const e = verifyResult.reason as CosignError;
-    if (e.code === 'ENOENT') {
-      console.error('harness: WARNING: cosign not found — skipping image verification (brew install cosign)');
+    if (e.code === "ENOENT") {
+      console.error(
+        "harness: WARNING: cosign not found — skipping image verification (brew install cosign)",
+      );
       return;
     }
-    console.error(`harness: image signature verification failed for ${digestRef}`);
+    console.error(
+      `harness: image signature verification failed for ${digestRef}`,
+    );
     console.error(e.stderr?.trim() || e.message);
     process.exit(1);
   }
 
-  if (attestResult.status === 'rejected') {
-    console.error(`harness: WARNING: no provenance attestation found for ${digestRef}`);
+  if (attestResult.status === "rejected") {
+    console.error(
+      `harness: WARNING: no provenance attestation found for ${digestRef}`,
+    );
   }
 
-  cache.verified[digestRef] = { tag: image, verifiedAt: new Date().toISOString() };
+  cache.verified[digestRef] = {
+    tag: image,
+    verifiedAt: new Date().toISOString(),
+  };
   writeCacheAtomic(cache);
 }
 
-const AGENT_NAMES = ['pi', 'opencode', 'hermes'] as const;
-type AgentName = typeof AGENT_NAMES[number];
+const AGENT_NAMES = ["pi", "opencode", "hermes"] as const;
+type AgentName = (typeof AGENT_NAMES)[number];
 
 const ADAPTERS: Record<AgentName, AgentAdapter> = {
   pi: new PiAdapter(),
@@ -252,19 +315,37 @@ You can also pipe text to harness as an implied -p:
 `;
 
 const workspace = process.cwd();
-const REGISTRY = 'ghcr.io/capotej/harness';
-const VERSION: string = require('../package.json').version;
+const REGISTRY = "ghcr.io/capotej/harness";
+const VERSION: string = require("../package.json").version;
 const IMAGE_TAG = process.env.HARNESS_IMAGE_TAG ?? VERSION;
 
 function getImage(agent: string): string {
-  const tag = agent === 'pi' ? IMAGE_TAG : `${agent}-${IMAGE_TAG}`;
+  const tag = agent === "pi" ? IMAGE_TAG : `${agent}-${IMAGE_TAG}`;
   return `${REGISTRY}:${tag}`;
 }
 
 const argv = minimist<Args>(process.argv.slice(2), {
-  boolean: ['help', 'h', 'no-verify', 'ephemeral'],
-  string: ['env-file', 'e', 'file', 'f', 'prompt', 'p', 'model', 'm', 'agent', 'a'],
-  alias: { e: 'env-file', f: 'file', p: 'prompt', m: 'model', h: 'help', a: 'agent' },
+  boolean: ["help", "h", "no-verify", "ephemeral"],
+  string: [
+    "env-file",
+    "e",
+    "file",
+    "f",
+    "prompt",
+    "p",
+    "model",
+    "m",
+    "agent",
+    "a",
+  ],
+  alias: {
+    e: "env-file",
+    f: "file",
+    p: "prompt",
+    m: "model",
+    h: "help",
+    a: "agent",
+  },
 });
 
 if (argv.help) {
@@ -272,17 +353,20 @@ if (argv.help) {
   process.exit(0);
 }
 
-const noVerify = argv['no-verify'];
-const envFilePath = argv['env-file'] || null;
+const noVerify = argv["no-verify"];
+const envFilePath = argv["env-file"] || null;
 const fileArg = argv.file || null;
 const promptArg = argv.prompt || null;
 const modelArg = argv.model || null;
-const effectiveEphemeral = argv.ephemeral || promptArg !== null || !process.stdin.isTTY;
+const effectiveEphemeral =
+  argv.ephemeral || promptArg !== null || !process.stdin.isTTY;
 
 const agentName: AgentName = (() => {
-  const name = argv.agent ?? 'pi';
+  const name = argv.agent ?? "pi";
   if (!isAgentName(name)) {
-    console.error(`harness: unknown agent: "${name}". Available: ${Object.keys(ADAPTERS).join(', ')}`);
+    console.error(
+      `harness: unknown agent: "${name}". Available: ${Object.keys(ADAPTERS).join(", ")}`,
+    );
     process.exit(1);
   }
   return name;
@@ -308,13 +392,17 @@ async function run(prompt: string | null): Promise<void> {
 
   if (!noVerify) {
     if (process.env.HARNESS_IMAGE_TAG) {
-      console.error(`harness: HARNESS_IMAGE_TAG is set; skipping cosign verification for ${image}`);
+      console.error(
+        `harness: HARNESS_IMAGE_TAG is set; skipping cosign verification for ${image}`,
+      );
     } else {
       await verifyImage(image);
     }
   }
 
-  const envFileArgs = envFilePath ? ['--env-file', path.resolve(envFilePath)] : [];
+  const envFileArgs = envFilePath
+    ? ["--env-file", path.resolve(envFilePath)]
+    : [];
 
   const adapter = ADAPTERS[agentName];
   const adapterOptions = { prompt, model: modelArg, envFilePath };
@@ -322,50 +410,56 @@ async function run(prompt: string | null): Promise<void> {
   const adapterDockerArgs = adapter.extraDockerArgs?.(adapterOptions) ?? [];
 
   const interactive = process.stdin.isTTY;
-  const ttyFlags = interactive ? ['-it'] : ['-i'];
+  const ttyFlags = interactive ? ["-it"] : ["-i"];
 
   let volumeArgs: string[];
   if (fileArg) {
     const absFile = path.resolve(fileArg);
     const fileName = path.basename(absFile);
-    volumeArgs = ['-v', `${absFile}:/workspace/${fileName}`];
+    volumeArgs = ["-v", `${absFile}:/workspace/${fileName}`];
   } else {
-    volumeArgs = ['-v', `${workspace}:/workspace`];
+    volumeArgs = ["-v", `${workspace}:/workspace`];
     if (!effectiveEphemeral) {
-      const persistRoot = path.join(workspace, '.harness', agentName);
+      const persistRoot = path.join(workspace, ".harness", agentName);
       const mounts = adapter.persistMounts?.() ?? [];
       for (const mount of mounts) {
         const hostFullPath = path.join(persistRoot, mount.hostSubpath);
         fs.mkdirSync(hostFullPath, { recursive: true });
-        volumeArgs.push('-v', `${hostFullPath}:${mount.containerPath}`);
+        volumeArgs.push("-v", `${hostFullPath}:${mount.containerPath}`);
       }
     }
   }
 
   const args = [
-    'run',
-    '--rm',
+    "run",
+    "--rm",
     ...ttyFlags,
-    '--cap-drop=ALL',
-    '--cap-add=NET_RAW',
-    '--security-opt', 'no-new-privileges:true',
+    "--cap-drop=ALL",
+    "--cap-add=NET_RAW",
+    "--security-opt",
+    "no-new-privileges:true",
     ...envFileArgs,
     ...adapterDockerArgs,
     ...volumeArgs,
-    '-w', '/workspace',
+    "-w",
+    "/workspace",
     image,
-    ...containerCmd
+    ...containerCmd,
   ];
 
-  const docker = spawn('docker', args, { stdio: 'inherit' });
-  docker.on('exit', (code) => process.exit(code ?? 1));
+  const docker = spawn("docker", args, { stdio: "inherit" });
+  docker.on("exit", (code) => process.exit(code ?? 1));
 }
 
 if (!process.stdin.isTTY && promptArg === null) {
-  let input = '';
-  process.stdin.setEncoding('utf8');
-  process.stdin.on('data', (chunk: string) => { input += chunk; });
-  process.stdin.on('end', () => run(input.trim() ? input : null).catch(() => process.exit(1)));
+  let input = "";
+  process.stdin.setEncoding("utf8");
+  process.stdin.on("data", (chunk: string) => {
+    input += chunk;
+  });
+  process.stdin.on("end", () =>
+    run(input.trim() ? input : null).catch(() => process.exit(1)),
+  );
 } else {
   run(promptArg).catch(() => process.exit(1));
 }

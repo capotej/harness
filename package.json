@@ -5,9 +5,7 @@
   "bin": {
     "harness": "bin/harness.js"
   },
-  "files": [
-    "bin/"
-  ],
+  "files": ["bin/"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/capotej/harness.git"
@@ -18,14 +16,23 @@
   },
   "scripts": {
     "build": "tsc",
-    "prepare": "tsc"
+    "prepare": "tsc",
+    "lint": "pnpm lint:ts && pnpm lint:md && pnpm lint:sh && pnpm lint:docker && pnpm lint:actions",
+    "lint:ts": "biome check .",
+    "lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
+    "lint:sh": "shellcheck entrypoint.sh entrypoint-opencode.sh entrypoint-hermes.sh",
+    "lint:docker": "hadolint Dockerfile Dockerfile.opencode Dockerfile.hermes",
+    "lint:actions": "actionlint",
+    "format": "biome format --write ."
   },
   "dependencies": {
     "minimist": "^1.2.8"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.9.4",
     "@types/minimist": "^1.2.5",
     "@types/node": "^25.6.0",
+    "markdownlint-cli2": "0.17.2",
     "typescript": "^6.0.2"
   }
 }

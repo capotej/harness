@@ -174,6 +174,24 @@ This makes the `harness` command available globally from your local checkout. To
 pnpm unlink --global @capotej/harness
 ```
 
+### Linting
+
+```bash
+pnpm lint        # run all linters
+pnpm lint:ts     # Biome (TypeScript + JSON)
+pnpm lint:md     # markdownlint
+pnpm lint:sh     # shellcheck
+pnpm lint:docker # hadolint
+pnpm lint:actions # actionlint
+pnpm format      # auto-format with Biome
+```
+
+`shellcheck`, `hadolint`, and `actionlint` are system binaries — install them locally before running the shell/Docker/Actions sub-linters:
+
+```bash
+brew install shellcheck hadolint actionlint
+```
+
 ## Building
 
 ```bash
@@ -181,6 +199,7 @@ make image
 ```
 
 Builds the `capotej/harness` Docker image with:
+
 - Debian stable-slim
 - Node.js v24
 - [`@mariozechner/pi-coding-agent`](https://pi.dev/) globally installed via pnpm

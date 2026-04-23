@@ -1,5 +1,8 @@
 FROM debian:stable-slim@sha256:e51bfcd2226c480a5416730e0fa2c40df28b0da5ff562fc465202feeef2f1116
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# hadolint ignore=DL3008
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
