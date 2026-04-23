@@ -162,6 +162,58 @@ pnpm dlx @capotej/harness -p "write me a fizzbuzz in Go"
 
 **`hermes`** — model is passed via `--model` flag using `provider/model` format (e.g. `anthropic/claude-sonnet-4-5`). Provider is auto-detected from whichever API key is present in the env file.
 
+## Deploying hermes-agent as a "claw" on fly.io
+
+You can deploy [`hermes`](https://github.com/NousResearch/hermes-agent) as a long-running "claw" on [fly.io](https://fly.io) so it can be reached over a messaging gateway. These instructions assume Telegram, but can easily be adapted to other [messaging gateways](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/).
+
+This assumes you have the `fly` CLI installed and authenticated with your fly.io account:
+
+```bash
+brew install flyctl
+fly auth login
+```
+
+Create `fly.toml`:
+
+```toml
+app = "my-hermes-agent-claw"
+primary_region = "iad"
+
+[env]
+  TZ = "America/New_York"
+
+[build]
+  image = "ghcr.io/capotej/harness:hermes-1.4.3"
+
+[processes]
+  app = "hermes gateway"
+
+[[mounts]]
+  source = "my_hermes_agent_claw_data"
+  destination = "/home/harness/.hermes-openrouter"
+  initial_size = "1gb"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+```
+
+Then create the app, volume, and secrets, and deploy:
+
+```bash
+fly apps create my-hermes-agent-claw
+fly volumes create my_hermes_agent_claw_data --region iad --size 1 --app my-hermes-agent-claw
+fly secrets set OPENROUTER_API_KEY=<your-key> --app my-hermes-agent-claw
+# See https://hermes-agent.nousresearch.com/docs/user-guide/messaging/telegram#option-b-manual-configuration
+fly secrets set TELEGRAM_BOT_TOKEN=<your-token> --app my-hermes-agent-claw
+fly secrets set TELEGRAM_ALLOWED_USERS=<your-user-ids> --app my-hermes-agent-claw
+fly deploy --app my-hermes-agent-claw
+```
+
+### Using your hermes-agent
+
+Message the bot directly via Telegram, or wire it up to a scheduled workflow — see the [daily briefing bot guide](https://hermes-agent.nousresearch.com/docs/guides/daily-briefing-bot) for an example.
+
 ## Developing
 
 ```bash
