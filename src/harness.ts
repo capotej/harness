@@ -41,12 +41,18 @@ interface AgentAdapter {
 }
 
 class PiAdapter implements AgentAdapter {
-  buildCommand({ prompt, model }: AgentOptions): string[] {
+  buildCommand({ prompt, model, envFilePath }: AgentOptions): string[] {
+    // In local mode (no env file), pass --provider ollama so pi routes
+    // the model to the local LM Studio provider. Without this, model names
+    // containing slashes (e.g. HuggingFace IDs like "qwen/qwen3.5-9b") are
+    // misinterpreted as provider/model format, causing pi to silently ignore
+    // --model and fall back to a default that may require cloud credentials.
+    const providerArgs = !envFilePath && model ? ["--provider", "ollama"] : [];
     const modelArgs = model ? ["--model", model] : [];
     if (prompt !== null) {
-      return ["pi", "-p", prompt, ...modelArgs];
+      return ["pi", "-p", prompt, ...providerArgs, ...modelArgs];
     }
-    return ["pi", ...modelArgs];
+    return ["pi", ...providerArgs, ...modelArgs];
   }
 
   persistMounts(): PersistMount[] {
