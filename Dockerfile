@@ -2,7 +2,7 @@ FROM debian:stable-slim@sha256:e51bfcd2226c480a5416730e0fa2c40df28b0da5ff562fc46
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ARG GH_VERSION="2.63.2"
+ARG GH_VERSION="2.91.0"
 ARG GH_ARCH="linux_amd64"
 
 # hadolint ignore=DL3008
@@ -29,17 +29,12 @@ RUN apt-get update && \
     && echo 'harness ALL=(root) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt' > /etc/sudoers.d/harness \
     && chmod 0440 /etc/sudoers.d/harness
 
-# Download, verify with cosign, and install gh
+# Download, verify checksum, and install gh
 RUN curl -fsSL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${GH_ARCH}.tar.gz \
         -o /tmp/gh.tar.gz && \
-    curl -fsSL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${GH_ARCH}.tar.gz.sig \
-        -o /tmp/gh.tar.gz.sig && \
-    curl -fsSL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${GH_ARCH}.tar.gz.pem \
-        -o /tmp/gh.tar.gz.pem && \
-    cosign verify-blob \
-        --certificate /tmp/gh.tar.gz.pem \
-        --signature /tmp/gh.tar.gz.sig \
-        /tmp/gh.tar.gz && \
+    curl -fsSL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_checksums.txt \
+        -o /tmp/gh_checksums.txt && \
+    grep "${GH_VERSION}_${GH_ARCH}.tar.gz" /tmp/gh_checksums.txt | sha256sum -c - && \
     tar -xzf /tmp/gh.tar.gz -C /tmp && \
     mv /tmp/gh_${GH_VERSION}_${GH_ARCH}/bin/gh /usr/local/bin/ && \
     chmod +x /usr/local/bin/gh && \
