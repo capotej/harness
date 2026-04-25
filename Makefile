@@ -1,16 +1,17 @@
 REGISTRY := ghcr.io/capotej/harness
+ARCH ?= $(shell uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
 
 build:
 	pnpm build
 
 image-base:
-	docker build -t $(REGISTRY):latest .
+	docker build --build-arg TARGETARCH=$(ARCH) -t $(REGISTRY):latest .
 
 image-opencode:
-	docker build --build-arg BASE_IMAGE=$(REGISTRY):latest -t $(REGISTRY):opencode-latest -f Dockerfile.opencode .
+	docker build --build-arg BASE_IMAGE=$(REGISTRY):latest --build-arg TARGETARCH=$(ARCH) -t $(REGISTRY):opencode-latest -f Dockerfile.opencode .
 
 image-hermes:
-	docker build --build-arg BASE_IMAGE=$(REGISTRY):latest -t $(REGISTRY):hermes-latest -f Dockerfile.hermes .
+	docker build --build-arg BASE_IMAGE=$(REGISTRY):latest --build-arg TARGETARCH=$(ARCH) -t $(REGISTRY):hermes-latest -f Dockerfile.hermes .
 
 image: image-base image-opencode image-hermes
 
