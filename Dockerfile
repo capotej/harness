@@ -30,15 +30,18 @@ RUN apt-get update && \
     && chmod 0440 /etc/sudoers.d/harness
 
 # Download, verify checksum, and install gh
-RUN curl -fsSL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${GH_ARCH}.tar.gz \
-        -o /tmp/gh.tar.gz && \
+RUN cd /tmp && \
+    curl -fsSL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${GH_ARCH}.tar.gz \
+        -o gh.tar.gz && \
     curl -fsSL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_checksums.txt \
-        -o /tmp/gh_checksums.txt && \
-    grep "${GH_VERSION}_${GH_ARCH}.tar.gz" /tmp/gh_checksums.txt | sha256sum -c - && \
-    tar -xzf /tmp/gh.tar.gz -C /tmp && \
-    mv /tmp/gh_${GH_VERSION}_${GH_ARCH}/bin/gh /usr/local/bin/ && \
+        -o gh_checksums.txt && \
+    grep "${GH_VERSION}_${GH_ARCH}.tar.gz" gh_checksums.txt > gh.checksum && \
+    mv gh.tar.gz gh_${GH_VERSION}_${GH_ARCH}.tar.gz && \
+    sha256sum -c gh.checksum && \
+    tar -xzf gh_${GH_VERSION}_${GH_ARCH}.tar.gz && \
+    mv gh_${GH_VERSION}_${GH_ARCH}/bin/gh /usr/local/bin/ && \
     chmod +x /usr/local/bin/gh && \
-    rm -rf /tmp/gh*
+    rm -rf gh*
 
 ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
