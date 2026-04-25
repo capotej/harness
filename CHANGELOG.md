@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.4.4] - 2026-04-25
+
+### Summary
+Installs `gh` CLI v2.91.0 in the base image with checksum verification for both amd64 and arm64. The PR workflow now builds and tests both architectures natively. Also fixes cosign to exit with an error (rather than a warning) when not installed, and adds fly.io deployment instructions for hermes to the README.
+
+### Dependency Updates
+- added `gh` 2.91.0 to base image
+
+### Changes
+- f3f4982 Merge pull request #11 from hermclaw/issue/gh-cosign
+- 72d45b1 fix: pass TARGETARCH in Makefile for correct gh binary
+- 0d967c4 fix: use native arm runner instead of QEMU emulation
+- b1c502b feat: build and test both amd64 and arm64 in PR workflow
+- 69bf594 fix: rename tarball to match checksum filename for sha256sum -c
+- a96ee1e fix: replace cosign verification with checksum verification for gh install
+- e201b8b feat: install pinned gh with cosign verification in base Dockerfile
+- 090d03e Merge pull request #12 from capotej/pr-build-check
+- fddf0b4 add PR build check workflow
+- 6a1b803 Merge pull request #9 from hermclaw/fix-cosign-exit-on-missing
+- 66d2f08 fix: exit with error if cosign not installed instead of warning
+- ae03b50 fix /restart hermes gateway command on fly.io containers
+- 4b5eb6f bump github actions
+- 3d69bf5 add instructions about deploying hermes to fly.io
+
 ## [1.4.3] - 2026-04-23
 
 ### Summary
