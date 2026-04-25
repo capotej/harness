@@ -105,7 +105,7 @@ This will start a container from the `capotej/harness` image, mount your current
 
 ### Image verification
 
-By default, harness verifies that the container image was signed by the official CI workflow and includes a valid SLSA provenance attestation. This requires [cosign](https://github.com/sigstore/cosign) (`brew install cosign`). If cosign is not installed, harness prints a warning and proceeds. To skip verification:
+By default, harness verifies that the container image was signed by the official CI workflow and includes a valid SLSA provenance attestation. This requires [cosign](https://github.com/sigstore/cosign) (`brew install cosign`). If cosign is not installed, harness exits with an error. Pass `--no-verify` to skip verification:
 
 ```bash
 npx @capotej/harness --no-verify -p "write me a fizzbuzz in Go"
