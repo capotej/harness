@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+echo "harness: pnpm minimumReleaseAge=$(grep minimumReleaseAge /etc/harness/.npmrc 2>/dev/null | cut -d= -f2 || echo disabled) min, uv exclude-newer=$(grep exclude-newer /etc/harness/uv.toml 2>/dev/null | cut -d'"' -f2 || echo disabled)"
+
 seed() {
   [ -d "$1" ] || return 0
   mkdir -p "$2"
