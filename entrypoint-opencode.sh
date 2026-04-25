@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "harness: pnpm minimumReleaseAge=$(grep minimumReleaseAge /etc/harness/.npmrc 2>/dev/null | cut -d= -f2 || echo disabled) min"
-
 export OPENCODE_DISABLE_AUTOUPDATE=true
 export OPENCODE_DISABLE_PRUNE=true
 
