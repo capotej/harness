@@ -3,7 +3,7 @@ FROM debian:stable-slim@sha256:e51bfcd2226c480a5416730e0fa2c40df28b0da5ff562fc46
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG GH_VERSION="2.91.0"
-ARG GH_ARCH="linux_amd64"
+ARG TARGETARCH
 
 # hadolint ignore=DL3008
 RUN apt-get update && \
@@ -30,16 +30,18 @@ RUN apt-get update && \
     && chmod 0440 /etc/sudoers.d/harness
 
 # Download, verify checksum, and install gh
-RUN cd /tmp && \
-    curl -fsSL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${GH_ARCH}.tar.gz \
+RUN set -eux && \
+    GH_ARCH="linux_${TARGETARCH:-amd64}" && \
+    cd /tmp && \
+    curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${GH_ARCH}.tar.gz" \
         -o gh.tar.gz && \
-    curl -fsSL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_checksums.txt \
+    curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_checksums.txt" \
         -o gh_checksums.txt && \
-    grep "${GH_VERSION}_${GH_ARCH}.tar.gz" gh_checksums.txt > gh.checksum && \
-    mv gh.tar.gz gh_${GH_VERSION}_${GH_ARCH}.tar.gz && \
+    grep "gh_${GH_VERSION}_${GH_ARCH}.tar.gz" gh_checksums.txt > gh.checksum && \
+    mv gh.tar.gz "gh_${GH_VERSION}_${GH_ARCH}.tar.gz" && \
     sha256sum -c gh.checksum && \
-    tar -xzf gh_${GH_VERSION}_${GH_ARCH}.tar.gz && \
-    mv gh_${GH_VERSION}_${GH_ARCH}/bin/gh /usr/local/bin/ && \
+    tar -xzf "gh_${GH_VERSION}_${GH_ARCH}.tar.gz" && \
+    mv "gh_${GH_VERSION}_${GH_ARCH}/bin/gh" /usr/local/bin/ && \
     chmod +x /usr/local/bin/gh && \
     rm -rf gh*
 
