@@ -111,6 +111,15 @@ By default, harness verifies that the container image was signed by the official
 npx @capotej/harness --no-verify -p "write me a fizzbuzz in Go"
 ```
 
+### Dependency cooldown
+
+Harness enforces a 1-week cooldown on dependency resolution inside the container. When an agent runs `pnpm install` or `uv pip install`, any package published within the last 7 days is rejected. This mitigates supply-chain attacks on freshly published packages, which are typically discovered and yanked within hours.
+
+- **pnpm**: `minimumReleaseAge=10080` (10080 minutes = 7 days) via `.npmrc`
+- **uv**: `exclude-newer = "7 days"` via `uv.toml`
+
+The cooldown applies to all dependency resolution, including transitive dependencies. Agents can still install packages that are older than the cooldown window.
+
 ### Persistence
 
 For interactive runs (no `-p` and no piped stdin), harness creates a `.harness/<agent>/` directory in your working directory and bind-mounts it into the container. This lets agents resume sessions, skip database migrations on repeat runs, and retain memories across invocations.

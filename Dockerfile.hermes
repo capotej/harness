@@ -55,6 +55,9 @@ RUN set -eux && \
 
 COPY --from=uv-src /uv /usr/local/bin/uv
 
+COPY uv.toml /etc/harness/uv.toml
+ENV UV_SYSTEM_CONFIG=/etc/harness/uv.toml
+
 RUN set -eux && \
     ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
     TIRITH_VERSION=0.2.12 && \

@@ -31,6 +31,8 @@ All CLI logic lives in `src/harness.ts` (compiles to `bin/harness.js`). It:
 
 **Docker image** (`Dockerfile`): Debian stable-slim with pinned digest, Node.js v24, pnpm, and both agent tools pre-installed (`@mariozechner/pi-coding-agent`, `opencode-ai`).
 
+**Dependency cooldown:** pnpm uses `minimumReleaseAge=10080` (`.npmrc` at `/etc/harness/.npmrc`) and uv uses `exclude-newer = "7 days"` (`uv.toml` at `/etc/harness/uv.toml`). Both reject packages published within the last 7 days, including transitive dependencies. Applied via `NPM_CONFIG_GLOBALCONFIG` and `UV_SYSTEM_CONFIG` env vars respectively.
+
 **`entrypoint.sh`**: Runs inside the container on each invocation — detects provider from env vars (`OPENROUTER_API_KEY`) and configures the active model/provider config accordingly.
 
 **Agent configs:** `models.json` (pi), `opencode/lmstudio.json`, `opencode/openrouter.json` define provider/model settings passed into the container.
