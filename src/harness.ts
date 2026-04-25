@@ -313,6 +313,9 @@ Options:
   --ephemeral            Disable session persistence (implied by -p and piped stdin)
   -h, --help             Show this help message
 
+Environment variables:
+  HARNESS_IMAGE_TAG      Override the Docker image tag (defaults to package version)
+
 You can also pipe text to harness as an implied -p:
   echo "write me a fizzbuzz in Go" | harness
 `;
