@@ -211,8 +211,11 @@ fly secrets set OPENROUTER_API_KEY=<your-key> --app my-hermes-agent-claw
 # See https://hermes-agent.nousresearch.com/docs/user-guide/messaging/telegram#option-b-manual-configuration
 fly secrets set TELEGRAM_BOT_TOKEN=<your-token> --app my-hermes-agent-claw
 fly secrets set TELEGRAM_ALLOWED_USERS=<your-user-ids> --app my-hermes-agent-claw
+fly secrets set GH_TOKEN=<your-personal-access-token> --app my-hermes-agent-claw
 fly deploy --app my-hermes-agent-claw
 ```
+
+> **GitHub CLI access:** The `GH_TOKEN` secret makes the `gh` CLI available inside the container. Tell the agent to add `terminal.env_passthrough: [GH_TOKEN]` to its `config.yaml` so the token is accessible in the sandbox.
 
 ### Using your hermes-agent
 
