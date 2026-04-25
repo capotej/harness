@@ -196,6 +196,10 @@ primary_region = "iad"
 [[vm]]
   size = "shared-cpu-1x"
   memory = "512mb"
+
+[[restart]]
+  policy = "always"
+  max_retries = 3
 ```
 
 Then create the app, volume, and secrets, and deploy:
