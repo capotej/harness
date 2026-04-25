@@ -261,9 +261,12 @@ async function verifyImage(image: string): Promise<void> {
     const e = verifyResult.reason as CosignError;
     if (e.code === "ENOENT") {
       console.error(
-        "harness: WARNING: cosign not found — skipping image verification (brew install cosign)",
+        "harness: cosign not found — cannot verify image without it.",
       );
-      return;
+      console.error(
+        "harness: install cosign (brew install cosign) or pass --no-verify to skip verification.",
+      );
+      process.exit(1);
     }
     console.error(
       `harness: image signature verification failed for ${digestRef}`,
