@@ -182,16 +182,20 @@ test("pi: prompt is forwarded as `pi -p <prompt>`", () => {
   assert.equal(tail[3], "pi"); // "pi" is second word of the prompt — split by space
 });
 
-test("pi: --model is forwarded as `pi --model <model>`", () => {
+test("pi: --model is forwarded with --provider ollama in local mode", () => {
   const r = runCli(["-p", "noop", "-m", "anthropic/claude-sonnet-4-5"]);
   assert.equal(r.status, 0, r.stderr);
   const a = dockerArgs(r.stdout);
   const idx = a.indexOf("pi");
   assert.notEqual(idx, -1);
-  assert.deepEqual(a.slice(idx, idx + 5), [
+  // In local mode (no env file), pi passes --provider ollama alongside --model
+  // so the model is routed to LM Studio even when the model name contains slashes.
+  assert.deepEqual(a.slice(idx, idx + 7), [
     "pi",
     "-p",
     "noop",
+    "--provider",
+    "ollama",
     "--model",
     "anthropic/claude-sonnet-4-5",
   ]);

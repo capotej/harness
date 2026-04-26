@@ -27,7 +27,37 @@ lms daemon up
 lms get google/gemma-4-e4b
 ```
 
-Then `cd` into any project and run:
+The container is preconfigured to use `gemma-4-e4b` via LM Studio's local API.
+
+You can also specify a different local model with `-m`. HuggingFace-style names with slashes (e.g. `qwen/qwen3.5-9b`) work correctly in local mode:
+
+```bash
+npx @capotej/harness -m "qwen/qwen3.5-9b" -p "write a fizzbuzz in Go"
+```
+
+### Using a cloud provider instead
+
+#### pi (default agent)
+
+If you pass an API key for a supported provider via `--env-file`, [`pi`](https://pi.dev/) will use that provider instead of the local LM Studio setup. Supported keys:
+
+| Provider | Environment Variable |
+|----------|----------------------|
+| Anthropic | `ANTHROPIC_API_KEY` |
+| OpenRouter | `OPENROUTER_API_KEY` |
+| OpenAI | `OPENAI_API_KEY` |
+| Google Gemini | `GEMINI_API_KEY` |
+| Mistral | `MISTRAL_API_KEY` |
+| Groq | `GROQ_API_KEY` |
+| Cerebras | `CEREBRAS_API_KEY` |
+| xAI | `XAI_API_KEY` |
+| Hugging Face | `HF_TOKEN` |
+
+See the [full list of supported providers](https://github.com/badlogic/pi-mono/blob/c779c14e91bc2ea65143e59b0dc1baf3646ba8c9/packages/coding-agent/docs/providers.md#api-keys) for more options. When using LM Studio locally, 16k context is sufficient.
+
+#### opencode agent
+
+[`opencode`](https://opencode.ai) uses LM Studio by default. To use OpenRouter instead, pass an env file containing `OPENROUTER_API_KEY`:
 
 ```bash
 npx @capotej/harness -p "write me a fizzbuzz in Go"
