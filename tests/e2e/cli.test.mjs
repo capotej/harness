@@ -116,6 +116,20 @@ test("-h exits 0 and prints USAGE", () => {
   assert.match(r.stdout, /Usage: harness/);
 });
 
+test("--help documents HARNESS_IMAGE_TAG environment variable", () => {
+  // PR #13 added HARNESS_IMAGE_TAG to the help output. Lock that in so
+  // future changes to USAGE don't silently drop documented env vars.
+  const r = runCli(["--help"]);
+  assert.equal(r.status, 0, r.stderr);
+  // The env var name itself must appear.
+  assert.match(r.stdout, /HARNESS_IMAGE_TAG/);
+  // And it must be in the dedicated "Environment variables:" section
+  // so users can find it (not buried in prose).
+  assert.match(r.stdout, /Environment variables:[\s\S]*HARNESS_IMAGE_TAG/);
+  // And the description must explain what it does (override image tag).
+  assert.match(r.stdout, /HARNESS_IMAGE_TAG[\s\S]*[Dd]ocker image tag/);
+});
+
 test("unknown agent fails fast with helpful error", () => {
   const r = runCli(["-a", "bogus-agent", "-p", "noop"]);
   assert.notEqual(r.status, 0);
