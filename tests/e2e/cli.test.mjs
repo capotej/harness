@@ -371,3 +371,50 @@ test("piped stdin is implicitly ephemeral and forwards prompt", () => {
   assert.equal(a[idx + 1], "-p");
   assert.match(a[idx + 2], /piped/);
 });
+
+test("interactive (PTY, no -p, no --ephemeral) creates .harness/<agent>/ persistence dir", () => {
+  // Inverse of the two implicit-ephemeral cases above: when the user is
+  // truly interactive (TTY, no -p, no piped stdin) and does NOT pass
+  // --ephemeral, the run() path must materialize the persistence dirs the
+  // adapter advertises via persistMounts(). For the pi adapter that is
+  // `<cwd>/.harness/pi/` (empty hostSubpath -> persistRoot itself).
+  //
+  // This locks the boundary so a future refactor can't accidentally drop
+  // the fs.mkdirSync() call or invert the `effectiveEphemeral` flag.
+  //
+  // Requires a PTY (process.stdin.isTTY === true is the gate). We allocate
+  // one via util-linux `script`, same as the pi no-prompt test above.
+  const which = spawnSync("sh", ["-c", "command -v script"], {
+    encoding: "utf8",
+  });
+  if (which.status !== 0) {
+    // Skip on platforms without `script` (rare; ubuntu-latest has it).
+    return;
+  }
+  const localWork = fs.mkdtempSync(path.join(os.tmpdir(), "harness-e2e-cwd-"));
+  const r = spawnSync("script", ["-qfec", `node ${CLI}`, "/dev/null"], {
+    cwd: localWork,
+    env: {
+      ...process.env,
+      PATH: `${SHIM_DIR}:${process.env.PATH}`,
+      HARNESS_IMAGE_TAG: "test-tag",
+    },
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(
+    fs.existsSync(path.join(localWork, ".harness", "pi")),
+    true,
+    ".harness/pi/ should be created in interactive mode without --ephemeral",
+  );
+  // And the docker args must include a -v mount targeting /home/harness/.pi/agent.
+  const cleaned = r.stdout.replace(/\r/g, "");
+  const a = dockerArgs(cleaned);
+  assert.ok(a, `expected DOCKER_INVOKED line in: ${cleaned}`);
+  const mountTarget = "/home/harness/.pi/agent";
+  const hasMount = a.some((arg) => arg.endsWith(`:${mountTarget}`));
+  assert.ok(
+    hasMount,
+    `expected a -v mount ending in :${mountTarget} in: ${a.join(" ")}`,
+  );
+});
