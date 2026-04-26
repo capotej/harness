@@ -1,0 +1,75 @@
+---
+name: check-deps
+description: Check whether pinned dependencies in the harness Dockerfiles have newer versions available. Use this skill whenever the user asks to check for dependency updates, see if packages are outdated, check for updates, review pinned versions, or any variation of "are deps up to date". Triggers on: "check deps", "check for updates", "are dependencies up to date", "update deps check", "any new versions", "deps outdated", "bump dependencies".
+---
+
+# Dependency Version Check
+
+This project pins eight external dependencies across its Dockerfiles. Check each one for updates and report what's current vs. what's available.
+
+## Dependencies to check
+
+| Dep | File | What's pinned | How to find latest |
+|-----|------|--------------|-------------------|
+| `@mariozechner/pi-coding-agent` | `Dockerfile` ~L52 | npm version in `pnpm install -g @mariozechner/pi-coding-agent@<VER>` | `npm show @mariozechner/pi-coding-agent version` |
+| `opencode-ai` | `Dockerfile.opencode` ~L6 | npm version in `pnpm install -g opencode-ai@<VER>` | `npm show opencode-ai version` |
+| `hermes-agent` | `Dockerfile.hermes` ~L91 | git tag in `--branch <TAG>` | `gh release list --repo NousResearch/hermes-agent --limit 5` |
+| `gh` (GitHub CLI) | `Dockerfile` ~L5 | `ARG GH_VERSION=<VER>` | `gh release list --repo cli/cli --limit 5` |
+| `cosign` | `Dockerfile.hermes` ~L12 | `ARG COSIGN_VERSION=<VER>` | `gh release list --repo sigstore/cosign --limit 5` |
+| `uv` | `Dockerfile.hermes` ~L10–11 | `ARG UV_VERSION=<VER>` + `ARG UV_DIGEST=sha256:...` | `gh release list --repo astral-sh/uv --limit 5` |
+| `pnpm` | `Dockerfile` ~L51 | version in `corepack prepare pnpm@<VER>` | `npm show pnpm version` |
+| `debian:stable-slim` | `Dockerfile` L1 | digest in `FROM debian:stable-slim@sha256:...` | `docker manifest inspect debian:stable-slim` — see note below |
+
+## Steps
+
+1. **Read all pinned versions in parallel** — use `grep` or `Read` on the relevant Dockerfiles. Extract:
+   - npm package versions (pattern: `@<VERSION>`)
+   - GitHub release ARGs (pattern: `ARG <NAME>_VERSION=`)
+   - hermes-agent git tag (pattern: `--branch <tag>`)
+   - uv digest (pattern: `ARG UV_DIGEST=sha256:`)
+   - debian digest (pattern: `FROM debian:stable-slim@sha256:`)
+   - pnpm version (pattern: `corepack prepare pnpm@<VER>`)
+
+2. **Fetch latest versions in parallel** — run all version checks at the same time:
+   - npm packages: `npm show @mariozechner/pi-coding-agent version`, `npm show opencode-ai version`, `npm show pnpm version`
+   - GitHub releases: `gh release list --repo <owner/repo> --limit 5` for hermes-agent, cli/cli, sigstore/cosign, astral-sh/uv
+   - debian: `docker manifest inspect debian:stable-slim 2>/dev/null | python3 -c "import sys,json; m=json.load(sys.stdin); print(m.get('manifests',[{}])[0].get('digest','') if 'manifests' in m else m.get('config',{}).get('digest',''))"` — or simpler: `docker pull debian:stable-slim 2>&1 | grep -E 'Digest:|sha256:'`
+
+3. **Parse GitHub release output** — `gh release list` returns columns: Title / Type / Tag / Published. The tag is in column 3. Strip leading `v` for semver comparison. Skip tags containing `-rc`, `-alpha`, `-beta`, or `-pre` unless all releases are pre-releases.
+
+   **hermes-agent cooldown check**: hermes tags follow `vYYYY.M.DD` (e.g. `v2026.4.23` = April 23 2026). Parse the date from the tag and compute days since release:
+   ```bash
+   python3 -c "
+   from datetime import date
+   tag = 'v2026.4.23'
+   y,m,d = tag.lstrip('v').split('.')
+   release = date(int(y), int(m), int(d))
+   print((date.today() - release).days)
+   "
+   ```
+   If the latest release is **fewer than 7 days old**, mark it as `on cooldown 🕐` and do **not** recommend upgrading, even if it is newer than the pinned version.
+
+4. **Compare and report** — produce a clean table:
+
+```
+| Dependency                    | Pinned       | Latest       | Status          |
+|-------------------------------|--------------|--------------|-----------------|
+| @mariozechner/pi-coding-agent | 0.67.68      | 0.70.1       | outdated ⬆      |
+| opencode-ai                   | 1.14.18      | 1.14.18      | up to date      |
+| hermes-agent                  | v2026.4.16   | v2026.4.20   | on cooldown 🕐  |
+| gh                            | 2.91.0       | 2.91.0       | up to date      |
+| cosign                        | 3.0.6        | 3.0.6        | up to date      |
+| uv                            | 0.11.6       | 0.11.9       | outdated ⬆      |
+| pnpm                          | 10.33.0      | 10.33.0      | up to date      |
+| debian:stable-slim            | sha256:e51b… | sha256:e51b… | up to date      |
+```
+
+5. **For each outdated dep, show the exact edit needed** — file path, the current line, and what it should change to. Be specific so the user can apply the update immediately or ask you to do it.
+
+## Notes on specific deps
+
+**uv**: Two things need updating together — `UV_VERSION` and `UV_DIGEST`. When a new version is available, look up its image digest with `docker manifest inspect ghcr.io/astral-sh/uv:<NEW_VERSION> | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['config']['digest'])"` and report both values.
+
+**debian:stable-slim**: The digest pins the exact image layer. If `docker pull` reports a different digest than what's in the Dockerfile, the base image has been updated. This requires re-pulling to get the new digest — mention this to the user rather than computing it automatically, since a pull may not always be desirable.
+
+**pnpm**: Pinned in two places — `Dockerfile` line ~51 (`corepack prepare pnpm@<VER>`) and `package.json` `packageManager` field. If updating, both need to change.

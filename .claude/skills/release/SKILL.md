@@ -60,7 +60,35 @@ date +%Y-%m-%d
 
 Based on the commits collected, write a 1–3 sentence prose summary of what changed (new features, fixes, notable improvements). For any new user-visible features — especially new CLI flags, options, or agents — include a concrete inline example showing how to use them (e.g. `harness --flag value`). Then include the raw commit list beneath it.
 
-**Dockerfile dependency changes** — Diff `Dockerfile` against the last tag to find any version bumps to installed tools (e.g. `@mariozechner/pi-coding-agent`, `opencode-ai`, Node.js). If any are found, include a `### Dependency Updates` section listing each change as `- updated <package> to <version>`.
+**Dockerfile dependency changes** — Diff `Dockerfile`, `Dockerfile.opencode`, and `Dockerfile.hermes` against the last tag to find any version bumps to installed tools (e.g. `@mariozechner/pi-coding-agent`, `opencode-ai`, `hermes-agent`, `uv`, `pnpm`, `debian`, etc.). If any are found, include a `### Dependency Updates` section listing each change as `- updated <package> from <old> to <new>`.
+
+**Upstream release notes for pi, opencode, and hermes-agent** — If any of these three were bumped, fetch the release notes for every version between the old pin (exclusive) and the new pin (inclusive) and include them in a `### Upstream Release Notes` section. Run the fetches in parallel:
+- `@mariozechner/pi-coding-agent`: use `npm show @mariozechner/pi-coding-agent versions --json` to enumerate intermediate versions, then `gh release view <tag> --repo badlogic/pi-mono --json tagName,body` for each (tags match npm versions with a `v` prefix, e.g. `v0.70.2`)
+- `opencode-ai`: `gh release view <tag> --repo sst/opencode --json tagName,body` for each version between old and new (tags are prefixed with `v`)
+- `hermes-agent`: `gh release view <tag> --repo NousResearch/hermes-agent --json tagName,body` for each tag between old and new
+
+Summarize each release in 2–4 bullet points (new features, breaking changes, notable fixes). Don't paste the full release body verbatim — condense it. Format the section like:
+
+```markdown
+### Upstream Release Notes
+
+#### @mariozechner/pi-coding-agent 0.67.68 → 0.70.2
+
+**v0.68.0** — <2–4 bullet summary>
+**v0.68.1** — <2–4 bullet summary>
+...
+
+#### opencode-ai 1.14.18 → 1.14.25
+
+**v1.14.19** — <2–4 bullet summary>
+...
+
+#### hermes-agent v2026.4.16 → v2026.4.23
+
+**v2026.4.23** — <2–4 bullet summary>
+```
+
+Omit `### Dependency Updates` and `### Upstream Release Notes` entirely if there are no relevant changes.
 
 **If CHANGELOG.md does not exist**, create it:
 ```markdown
@@ -72,13 +100,16 @@ Based on the commits collected, write a 1–3 sentence prose summary of what cha
 <1–3 sentence prose summary of what changed>
 
 ### Dependency Updates
-- updated <package> to <version>
+- updated <package> from <old> to <new>
+
+### Upstream Release Notes
+
+#### <package> <old> → <new>
+...
 
 ### Changes
 - <hash> <message>
 ```
-
-Omit `### Dependency Updates` entirely if there are no Dockerfile dependency changes.
 
 **If it already exists**, insert the new entry immediately after the `# Changelog` header line, before any existing entries.
 
