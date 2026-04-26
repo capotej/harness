@@ -30,8 +30,8 @@ If they differ, there are unpushed commits on `main`. Inform the user:
 
 - If the user gave an explicit version, use it.
 - Otherwise read `version` from `package.json` and infer a semantic bump from commits since the last tag:
-  - **patch** (default) — bug fixes, docs, tooling
-  - **minor** — any commit suggesting new features ("add", "support", "new", "feat")
+  - **patch** (default) — bug fixes, docs, tooling, and new features (`feat:` commits)
+  - **minor** — only on user request or commits that add new user-facing CLI flags, options, or agents
   - **major** — only on user request or explicit breaking-change commit messages
 
 Tell the user what version you chose and why before continuing.
@@ -85,6 +85,16 @@ Omit `### Dependency Updates` entirely if there are no Dockerfile dependency cha
 ## Step 5: Bump version in package.json
 
 Edit the `version` field directly in `package.json`. Do not use `npm version` — it creates git commits automatically and would interfere with the jj workflow.
+
+## Step 5b: Update hermes image tag in README.md
+
+The fly.toml example in `README.md` contains a pinned hermes image tag (e.g. `ghcr.io/capotej/harness:hermes-1.4.4`). Update it to the new version:
+
+```
+image = "ghcr.io/capotej/harness:hermes-<new-version>"
+```
+
+Search for the pattern `hermes-[0-9]` in `README.md` and replace all occurrences with the new version.
 
 ## Step 6: Build
 

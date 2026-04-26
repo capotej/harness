@@ -192,7 +192,7 @@ primary_region = "iad"
   TZ = "America/New_York"
 
 [build]
-  image = "ghcr.io/capotej/harness:hermes-1.4.4"
+  image = "ghcr.io/capotej/harness:hermes-1.4.5"
 
 [processes]
   app = "hermes gateway"

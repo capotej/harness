@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.5] - 2026-04-25
+
+### Summary
+Enforces a 1-week cooldown on dependency resolution inside the container for both pnpm (`minimumReleaseAge=10080`) and uv (`exclude-newer = "7 days"`), rejecting packages published within the last 7 days to mitigate supply-chain attacks. Also expands the `harness` user's passwordless sudo access to include `dpkg`, surfaces `HARNESS_IMAGE_TAG` in `--help` output, and documents fly.io deployment with `GH_TOKEN`.
+
+### Changes
+- 093de49 feat: add dpkg to passwordless sudoers for harness user (#17)
+- e064316 feat: enforce 1-week dependency cooldown on pnpm and uv (#15)
+- d50d603 docs: surface HARNESS_IMAGE_TAG in --help output (#13)
+- 879c9f9 docs: add GH_TOKEN to fly.io setup (#14)
+- b1914b3 bump github actions
+
 ## [1.4.4] - 2026-04-25
 
 ### Summary
