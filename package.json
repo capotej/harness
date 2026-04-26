@@ -24,7 +24,9 @@
     "lint:sh": "shellcheck entrypoint.sh entrypoint-opencode.sh entrypoint-hermes.sh",
     "lint:docker": "hadolint Dockerfile Dockerfile.opencode Dockerfile.hermes",
     "lint:actions": "actionlint",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "test:e2e:cli": "node --test tests/e2e/cli.test.mjs",
+    "test:e2e": "node --test tests/e2e/cli.test.mjs"
   },
   "dependencies": {
     "minimist": "^1.2.8"
