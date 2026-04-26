@@ -227,6 +227,21 @@ test("opencode: image tag is `opencode-<version>`", () => {
   );
 });
 
+test("opencode: --env-file is forwarded (env-file is adapter-agnostic)", () => {
+  // The existing --env-file test only exercises the pi adapter. --env-file
+  // is plumbed at the docker level (envFileArgs is built before the adapter
+  // is selected), so it MUST work for opencode too. Lock that contract.
+  const r = runCli(["-a", "opencode", "-e", ENV_FILE, "-p", "noop"]);
+  assert.equal(r.status, 0, r.stderr);
+  const a = dockerArgs(r.stdout);
+  const eIdx = a.indexOf("--env-file");
+  assert.notEqual(eIdx, -1, `--env-file missing in: ${a.join(" ")}`);
+  // Must be the absolute path (path.resolve in run()).
+  assert.equal(a[eIdx + 1], path.resolve(ENV_FILE));
+  // And opencode is still the agent.
+  assert.notEqual(a.indexOf("opencode"), -1);
+});
+
 test("opencode: --model is passed via OPENCODE_MODEL env, not CLI", () => {
   const r = runCli([
     "-a",
