@@ -1,5 +1,63 @@
 # Changelog
 
+## [1.4.6] - 2026-04-26
+
+### Summary
+Fixes `--provider ollama` not being forwarded when `-m` is used without `-e` in local mode (e.g. `harness -m "qwen/qwen3.5-9b" -p "..."` now correctly routes to Ollama). Switches the uv cooldown enforcement from a `uv.toml` config file to `--exclude-newer` passed directly to `uv pip install` at image build time — more reliable and removes a footgun. Adds a comprehensive e2e test suite for the CLI. Also ships major upstream updates across all three agents and core dependency bumps.
+
+### Changes
+- 7852c25 test: update --model test to reflect --provider ollama in local mode
+- f1de7e0 docs: clarify -m model flag works in local mode with HuggingFace IDs
+- 359ae3f fix(pi): pass --provider ollama when -m is used without -e
+- 7003bf5 fix markdownlint
+- 9cb0a47 readme
+- b812f27 test: comprehensive e2e tests for the harness CLI (#5)
+- bae109d fix: enforce uv cooldown via --exclude-newer flag and add hermes cooldown to check-deps skill (#18)
+
+### Dependency Updates
+- updated `debian:stable-slim` base image digest
+- updated `pnpm` from 10.33.0 to 10.33.2
+- updated `@mariozechner/pi-coding-agent` from 0.67.68 to 0.70.2
+- updated `opencode-ai` from 1.14.18 to 1.14.25
+- updated `uv` from 0.11.6 to 0.11.7
+- updated `hermes-agent` from v2026.4.16 to v2026.4.23
+
+### Upstream Release Notes
+
+#### @mariozechner/pi-coding-agent 0.67.68 → 0.70.2
+
+**v0.68.0** — Configurable streaming working indicator for extensions via `ctx.ui.setWorkingIndicator()`; `before_agent_start` now exposes `systemPromptOptions` so extensions can inspect structured system-prompt inputs.
+
+**v0.68.1** — Added Fireworks provider support with `FIREWORKS_API_KEY` auth and default model `accounts/fireworks/models/kimi-k2p6`; configurable inline tool image width via `terminal.imageWidthCells`.
+
+**v0.69.0** — TypeBox 1.x migration for extensions and SDK; TypeBox-native tool argument validation now works in eval-restricted runtimes (e.g. Cloudflare Workers); stacked extension autocomplete providers via `ctx.ui.addAutocompleteProvider()`.
+
+**v0.70.0** — Searchable fuzzy-filter login flow for `/login` provider selector; GPT-5.5 Codex support (`openai-codex/gpt-5.5`) with `xhigh` reasoning; OSC 9;4 terminal progress indicators are now opt-in.
+
+**v0.70.1** — DeepSeek provider support with V4 Flash/Pro models and `DEEPSEEK_API_KEY`; provider request timeout/retry controls via `retry.provider.{timeoutMs,maxRetries,maxRetryDelayMs}`.
+
+**v0.70.2** — Fixed provider retry/timeout forwarding to omit undefined fields, avoiding downstream SDK validation errors (e.g. `timeout must be an integer`).
+
+#### opencode-ai 1.14.18 → 1.14.25
+
+**v1.14.19** — Fixed circular session schema startup failure; renamed `compaction` setting to `preserve_recent_tokens`; preserved concurrent edits to the same file; added NVIDIA as a built-in provider.
+
+**v1.14.20** — Fixed system theme regression in TUI; added `GET /config` to the experimental HTTP API; fixed permission replies for remote workspaces.
+
+**v1.14.21** — LSP pull diagnostics support (C#, Kotlin); improved session compaction for long threads; C# support switched to Roslyn Language Server; Mistral high-reasoning variant.
+
+**v1.14.22** — Respects `.npmrc` settings during npm installs; projects can store persistent custom icon overrides.
+
+**v1.14.23** — Respects custom `.npmrc` registry settings for package version checks; TUI renders all non-synthetic text in user messages.
+
+**v1.14.24** — Fixed DeepSeek assistant messages (reasoning always included); experimental HTTP API endpoints for MCP server status and file listing/reading.
+
+**v1.14.25** — Fixed permission config to preserve rule order with full IntelliSense for tool permission keys; LSP permission prompts include operation, file, and cursor position; shell commands keep correct working directory after login shell startup; Roslyn LSP support for Razor and `.cshtml` files.
+
+#### hermes-agent v2026.4.16 → v2026.4.23
+
+**v2026.4.23** — Major v0.11.0 release: new Ink-based TUI (`hermes --tui`), native AWS Bedrock support, pluggable transport architecture, 17th messaging platform (QQBot), GPT-5.5 via Codex OAuth, and dramatically expanded plugin surface. Covers ~2 weeks of work (1,556 commits, 761 PRs).
+
 ## [1.4.5] - 2026-04-25
 
 ### Summary
