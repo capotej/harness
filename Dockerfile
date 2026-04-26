@@ -26,7 +26,7 @@ RUN apt-get update && \
     && apt-get purge -y --auto-remove gnupg \
     && rm -rf /var/lib/apt/lists/* \
     && useradd -m -s /bin/bash harness \
-    && echo 'harness ALL=(root) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt' > /etc/sudoers.d/harness \
+    && echo 'harness ALL=(root) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt, /usr/bin/dpkg' > /etc/sudoers.d/harness \
     && chmod 0440 /etc/sudoers.d/harness
 
 # Download, verify checksum, and install gh
