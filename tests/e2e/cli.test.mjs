@@ -207,7 +207,14 @@ test("pi: --model with --env-file does NOT inject --provider ollama (env mode)",
   // and the CLI must NOT override that with `--provider ollama`. This test
   // locks down the boundary so future refactors don't accidentally inject
   // --provider in env-file mode (or drop it in local mode).
-  const r = runCli(["-e", ENV_FILE, "-p", "noop", "-m", "anthropic/claude-sonnet-4-5"]);
+  const r = runCli([
+    "-e",
+    ENV_FILE,
+    "-p",
+    "noop",
+    "-m",
+    "anthropic/claude-sonnet-4-5",
+  ]);
   assert.equal(r.status, 0, r.stderr);
   const a = dockerArgs(r.stdout);
   const idx = a.indexOf("pi");
