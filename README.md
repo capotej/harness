@@ -6,8 +6,8 @@
   <strong>Run agents in a sandboxed container — ready to drop into any project.</strong>
 </p>
 
-Harness conveniently wraps Docker around three open-source coding agents — [`pi`](https://pi.dev/), [`opencode`](https://opencode.ai), 
-and [`hermes`](https://github.com/NousResearch/hermes-agent) — so you can point one at a directory (or file) without giving it access to your entire machine. 
+Harness conveniently wraps Docker around three open-source coding agents — [`pi`](https://pi.dev/), [`opencode`](https://opencode.ai),
+and [`hermes`](https://github.com/NousResearch/hermes-agent) — so you can point one at a directory (or file) without giving it access to your entire machine.
 
 ## Features
 
