@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.5.0] - 2026-04-26
+
+### Summary
+Adds `mise` (polyglot version manager) to the base image for in-container language toolchain management, and introduces `tini` as PID 1 across all container variants for proper zombie process reaping and signal forwarding. Expands the e2e test suite with coverage for persistence behavior, `--env-file` forwarding across agents, and CLI documentation completeness.
+
+### Changes
+- 0710e24 test(hermes): no -m and no -p emits exactly ['hermes','chat'] (#25)
+- ca2f1e3 test(opencode): --env-file is forwarded for non-pi adapters too (#24)
+- 4783fa7 test(persist): interactive run without --ephemeral creates .harness/<agent>/ persistence dir (#23)
+- 8c0e81b feat: add mise as polyglot version manager to base image (#26)
+- a4fd46a test(pi): inverse case  env-file + -m omits --provider ollama (#20)
+- 984598e chore: add tini as PID 1 for zombie reaping and signal forwarding (#19)
+- d07b6a4 test(cli): assert HARNESS_IMAGE_TAG is documented in --help (#21)
+
+### Dependency Updates
+- added `mise` v2026.4.23 (polyglot version manager)
+- added `tini` v0.19.0 (PID 1 init process)
+
 ## [1.4.6] - 2026-04-26
 
 ### Summary
