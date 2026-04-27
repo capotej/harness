@@ -3,6 +3,7 @@ FROM debian:stable-slim@sha256:8f0c555de6a2f9c2bda1b170b67479d11f7f5e3b66bb4a7a1
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG GH_VERSION="2.91.0"
+ARG MISE_VERSION="2026.4.23"
 ARG TARGETARCH
 
 # hadolint ignore=DL3008
@@ -59,6 +60,23 @@ COPY .npmrc /etc/harness/.npmrc
 ENV NPM_CONFIG_GLOBALCONFIG=/etc/harness/.npmrc
 
 COPY pi/models.json /etc/harness/pi-defaults/models.json
+
+# Install mise (polyglot version manager)
+# Checksums from: https://github.com/jdx/mise/releases/download/v2026.4.23/SHASUMS256.txt
+ENV MISE_VERSION=2026.4.23
+ENV MISE_AMD64_SHA256=4a650daf1c6db2bb9c32a4d4f6d2389051906f85792d97b04ad10b9f6e212372
+ENV MISE_ARM64_SHA256=4d2a02012c87e02fba74c72dabf7ff8c64fbcc2d70b848f63f75b257592fcd44
+RUN set -eux && \
+    ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
+    case "${ARCH}" in \
+        amd64) MISE_ARCH=x64; EXPECTED="${MISE_AMD64_SHA256}" ;; \
+        arm64) MISE_ARCH=arm64; EXPECTED="${MISE_ARM64_SHA256}" ;; \
+        *) echo "unsupported arch: ${ARCH}"; exit 1 ;; \
+    esac && \
+    curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-${MISE_ARCH}" \
+        -o /usr/local/bin/mise && \
+    echo "${EXPECTED}  /usr/local/bin/mise" | sha256sum --check --strict && \
+    chmod +x /usr/local/bin/mise
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
