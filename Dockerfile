@@ -76,8 +76,7 @@ RUN set -eux && \
     curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-${MISE_ARCH}" \
         -o /usr/local/bin/mise && \
     echo "${EXPECTED}  /usr/local/bin/mise" | sha256sum --check --strict && \
-    chmod +x /usr/local/bin/mise && \
-    mise trust --all
+    chmod +x /usr/local/bin/mise
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
