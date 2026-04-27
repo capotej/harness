@@ -63,6 +63,23 @@ COPY pi/models.json /etc/harness/pi-defaults/models.json
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Install tini (PID 1 zombie reaper + signal forwarder)
+# Checksums from: https://github.com/krallin/tini/releases/download/v0.19.0/tini-static-{amd64,arm64}.sha256sum
+ENV TINI_VERSION=v0.19.0
+ENV TINI_AMD64_SHA256=c5b0666b4cb676901f90dfcb37106783c5fe2077b04590973b885950611b30ee
+ENV TINI_ARM64_SHA256=eae1d3aa50c48fb23b8cbdf4e369d0910dfc538566bfd09df89a774aa84a48b9
+RUN set -eux && \
+    ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
+    case "${ARCH}" in \
+        amd64) TINI_ARCH=amd64; EXPECTED="${TINI_AMD64_SHA256}" ;; \
+        arm64) TINI_ARCH=arm64; EXPECTED="${TINI_ARM64_SHA256}" ;; \
+        *) echo "unsupported arch: ${ARCH}"; exit 1 ;; \
+    esac && \
+    curl -fsSL "https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-static-${TINI_ARCH}" \
+        -o /tini && \
+    echo "${EXPECTED}  /tini" | sha256sum --check --strict && \
+    chmod +x /tini
+
 USER harness
 WORKDIR /app
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/tini", "--", "/entrypoint.sh"]

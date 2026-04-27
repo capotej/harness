@@ -17,4 +17,4 @@ RUN chmod +x /entrypoint.sh
 
 USER harness
 WORKDIR /app
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/tini", "--", "/entrypoint.sh"]
