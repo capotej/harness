@@ -215,6 +215,41 @@ test("pi: --model is forwarded with --provider ollama in local mode", () => {
   ]);
 });
 
+test("pi: --model with --env-file does NOT inject --provider ollama (env mode)", () => {
+  // Inverse of the local-mode case above. When the user supplies --env-file,
+  // the provider/credentials are configured via env vars (e.g. OPENROUTER_API_KEY),
+  // and the CLI must NOT override that with `--provider ollama`. This test
+  // locks down the boundary so future refactors don't accidentally inject
+  // --provider in env-file mode (or drop it in local mode).
+  const r = runCli([
+    "-e",
+    ENV_FILE,
+    "-p",
+    "noop",
+    "-m",
+    "anthropic/claude-sonnet-4-5",
+  ]);
+  assert.equal(r.status, 0, r.stderr);
+  const a = dockerArgs(r.stdout);
+  const idx = a.indexOf("pi");
+  assert.notEqual(idx, -1);
+  // pi command tail is exactly: pi -p noop --model <model>
+  assert.deepEqual(a.slice(idx, idx + 5), [
+    "pi",
+    "-p",
+    "noop",
+    "--model",
+    "anthropic/claude-sonnet-4-5",
+  ]);
+  // And no --provider flag anywhere in pi's argv.
+  const tail = a.slice(idx);
+  assert.equal(
+    tail.indexOf("--provider"),
+    -1,
+    `unexpected --provider in env-file mode: ${tail.join(" ")}`,
+  );
+});
+
 // ---- opencode adapter ------------------------------------------------------
 
 test("opencode: image tag is `opencode-<version>`", () => {
