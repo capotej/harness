@@ -308,6 +308,43 @@ test("opencode: --model is passed via OPENCODE_MODEL env, not CLI", () => {
 
 // ---- hermes adapter --------------------------------------------------------
 
+test("hermes: no -m, no -p emits exactly ['hermes','chat'] (no stray flags)", () => {
+  // Covers the no-model + interactive branch of HermesAdapter.buildCommand:
+  //   args = ["hermes","chat"]; no -m pushed (model falsy); no -q pushed
+  //   (prompt === null when no -p and no piped stdin).
+  // Locks that future refactors don't accidentally inject defaults for
+  // either flag in the no-args path.
+  //
+  // Requires a PTY so process.stdin.isTTY === true and the prompt stays null.
+  const which = spawnSync("sh", ["-c", "command -v script"], {
+    encoding: "utf8",
+  });
+  if (which.status !== 0) {
+    return;
+  }
+  const r = spawnSync(
+    "script",
+    ["-qfec", `node ${CLI} -a hermes`, "/dev/null"],
+    {
+      cwd: WORK_DIR,
+      env: {
+        ...process.env,
+        PATH: `${SHIM_DIR}:${process.env.PATH}`,
+        HARNESS_IMAGE_TAG: "test-tag",
+      },
+      encoding: "utf8",
+    },
+  );
+  assert.equal(r.status, 0, r.stderr);
+  const cleaned = r.stdout.replace(/\r/g, "");
+  const a = dockerArgs(cleaned);
+  assert.ok(a, `expected DOCKER_INVOKED line in: ${cleaned}`);
+  const idx = a.indexOf("hermes");
+  assert.notEqual(idx, -1);
+  // Exactly the two-token tail; no -m, no -q.
+  assert.deepEqual(a.slice(idx), ["hermes", "chat"]);
+});
+
 test("hermes: model is passed via -m <provider/model>", () => {
   const r = runCli([
     "-a",
