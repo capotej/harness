@@ -65,7 +65,7 @@ RUN chmod +x /entrypoint.sh
 
 # Install tini (PID 1 zombie reaper + signal forwarder)
 # Checksums from: https://github.com/krallin/tini/releases/download/v0.19.0/tini-static-{amd64,arm64}.sha256sum
-ENV TINI_VERSION v0.19.0
+ENV TINI_VERSION=v0.19.0
 ENV TINI_AMD64_SHA256=c5b0666b4cb676901f90dfcb37106783c5fe2077b04590973b885950611b30ee
 ENV TINI_ARM64_SHA256=eae1d3aa50c48fb23b8cbdf4e369d0910dfc538566bfd09df89a774aa84a48b9
 RUN set -eux && \
