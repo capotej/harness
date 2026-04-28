@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Summary
+Fixes a long-standing issue where seeded hermes config files
+(`config.yaml`, `.env`, `system-prompt.md`) were never refreshed after the
+first container boot — silently breaking the config-as-code workflow for
+deployments that mount a persistent volume on `~/.hermes-{local,openrouter}`
+(the topology documented in README's fly.io section). Top-level files in
+`/etc/harness/hermes-defaults/<flavor>/` are now treated as config and
+overwritten on every boot; top-level directories (`sessions/`, `logs/`,
+`hooks/`, `memories/`, `skills/`, `plans/`, `workspace/`) remain runtime
+state and are preserved across restarts.
+
+### Changes
+- fix(hermes): refresh seeded config files on every container boot
+- test(hermes): cover seed file-vs-directory semantics in entrypoint-hermes.sh
+
 ## [1.5.0] - 2026-04-26
 
 ### Summary
