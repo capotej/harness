@@ -291,6 +291,49 @@ fly deploy --app my-hermes-agent-claw
 
 Message the bot via Telegram, or wire it up to a scheduled workflow — see the [daily briefing bot guide](https://hermes-agent.nousresearch.com/docs/guides/daily-briefing-bot) for an example.
 
+### Customizing the claw — *don't* extend the image
+
+When you want to give the claw extra capabilities (tool wrappers around your APIs, an opinionated initial system prompt, custom `gh`-style scripts), the temptation is to write a `Dockerfile` that does `FROM ghcr.io/capotej/harness:hermes-1.5.0` and bakes everything in. **Don't.** Two problems:
+
+1. The fly volume mounts on top of `/home/harness/.hermes-openrouter`, which silently hides anything you `COPY` into that path on first boot.
+2. Hermes treats `config.yaml` as mutable state — TUI tweaks, model switches, and persona toggles are persisted via `save_config()`. A derived image fights that ownership.
+
+The supported pattern is to use the upstream image **unmodified** and inject your customizations via fly's [`[[files]]`](https://fly.io/docs/reference/configuration/#the-files-section) section. Files at non-volume paths get refreshed on every deploy; files seeded into `/etc/harness/hermes-defaults/openrouter/` get copied into the volume on first boot only (via `entrypoint-hermes.sh`'s `cp -rn`) so hermes' subsequent runtime config edits stick across restarts.
+
+Example — add a `crm` API wrapper script and an initial system prompt without building a new image:
+
+```toml
+# fly.toml — append to the example above
+
+# Tool wrappers — written to a non-volume path. Refreshed on every deploy.
+# fly [[files]] preserves the local file's exec bit, so your scripts run
+# as-is from the agent's sandbox.
+[[files]]
+  guest_path = "/etc/myclaw/bin/crm"
+  local_path = "bin/crm"
+
+# Initial config + persona. Upstream's hermes entrypoint copies these into
+# the volume on first boot only — after that, hermes owns its config.
+[[files]]
+  guest_path = "/etc/harness/hermes-defaults/openrouter/system-prompt.md"
+  local_path = "config/system-prompt.md"
+```
+
+To force a refresh of `config.yaml` or `system-prompt.md` from your repo after the first boot, SSH in and delete the volume's copy before redeploying:
+
+```bash
+fly ssh console --app my-hermes-agent-claw \
+  -C 'rm /home/harness/.hermes-openrouter/system-prompt.md'
+fly deploy --app my-hermes-agent-claw
+```
+
+The benefits over a derived image:
+
+- **Faster deploys** — no rebuild, just pull the upstream image and apply files. Seconds instead of minutes.
+- **Trivial upstream upgrades** — bump one tag in `fly.toml`.
+- **No fight with hermes** over `config.yaml` ownership.
+- **One fewer artifact** to maintain, sign, and verify.
+
 ## Developing
 
 Link your local checkout globally:
