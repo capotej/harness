@@ -505,3 +505,51 @@ test("interactive (PTY, no -p, no --ephemeral) creates .harness/<agent>/ persist
     `expected a -v mount ending in :${mountTarget} in: ${a.join(" ")}`,
   );
 });
+
+test("--ephemeral overrides interactive PTY: no .harness/ dir, no persist mount", () => {
+  // Inverse of the interactive-PTY persistence test: when the user is in a
+  // real PTY (TTY, no -p, no piped stdin) but EXPLICITLY passes --ephemeral,
+  // the run() path must NOT create .harness/<agent>/ and must NOT include
+  // the adapter's persistMounts() in the docker args.
+  //
+  // This locks the precedence of the --ephemeral flag in
+  // `effectiveEphemeral = argv.ephemeral || promptArg !== null || !process.stdin.isTTY`
+  // so a future refactor can't accidentally drop the OR-with-argv.ephemeral
+  // and re-introduce host-side directories for opt-out users.
+  const which = spawnSync("sh", ["-c", "command -v script"], {
+    encoding: "utf8",
+  });
+  if (which.status !== 0) {
+    return; // platforms without `script` (rare; ubuntu-latest has it).
+  }
+  const localWork = fs.mkdtempSync(path.join(os.tmpdir(), "harness-e2e-cwd-"));
+  const r = spawnSync(
+    "script",
+    ["-qfec", `node ${CLI} --ephemeral`, "/dev/null"],
+    {
+      cwd: localWork,
+      env: {
+        ...process.env,
+        PATH: `${SHIM_DIR}:${process.env.PATH}`,
+        HARNESS_IMAGE_TAG: "test-tag",
+      },
+      encoding: "utf8",
+    },
+  );
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(
+    fs.existsSync(path.join(localWork, ".harness")),
+    false,
+    ".harness/ must NOT be created when --ephemeral is passed in interactive mode",
+  );
+  const cleaned = r.stdout.replace(/\r/g, "");
+  const a = dockerArgs(cleaned);
+  assert.ok(a, `expected DOCKER_INVOKED line in: ${cleaned}`);
+  const mountTarget = "/home/harness/.pi/agent";
+  const hasMount = a.some((arg) => arg.endsWith(`:${mountTarget}`));
+  assert.equal(
+    hasMount,
+    false,
+    `--ephemeral must suppress persistMounts(); got mount in: ${a.join(" ")}`,
+  );
+});
