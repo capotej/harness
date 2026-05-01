@@ -607,7 +607,6 @@ test("--ephemeral overrides interactive PTY: no .harness/ dir, no persist mount"
     `--ephemeral must suppress persistMounts(); got mount in: ${a.join(" ")}`,
   );
 });
-
 test("piped whitespace-only stdin takes no-prompt branch (pi has no -p)", () => {
   // The stdin handler at the bottom of run() is:
   //   run(input.trim() ? input : null)
@@ -649,4 +648,62 @@ test("piped whitespace-only stdin takes no-prompt branch (pi has no -p)", () => 
     false,
     `whitespace stdin must NOT inject -p; got cmd: ${tail.join(" ")}`,
   );
+});
+
+test("opencode interactive (no --ephemeral) creates all three persistence dirs and mounts", () => {
+  // OpenCodeAdapter.persistMounts() returns three distinct mounts:
+  //   - config -> /home/harness/.config/opencode
+  //   - share  -> /home/harness/.local/share/opencode
+  //   - state  -> /home/harness/.local/state/opencode
+  //
+  // The pi adapter test only locks a single empty-hostSubpath mount. This
+  // test locks the multi-mount shape so a future refactor can't silently
+  // drop one of the three OpenCode persistence buckets (which would lose
+  // user history / config across container runs).
+  const which = spawnSync("sh", ["-c", "command -v script"], {
+    encoding: "utf8",
+  });
+  if (which.status !== 0) {
+    return; // skip on platforms without `script`.
+  }
+  const localWork = fs.mkdtempSync(path.join(os.tmpdir(), "harness-e2e-cwd-"));
+  const r = spawnSync(
+    "script",
+    ["-qfec", `node ${CLI} -a opencode`, "/dev/null"],
+    {
+      cwd: localWork,
+      env: {
+        ...process.env,
+        PATH: `${SHIM_DIR}:${process.env.PATH}`,
+        HARNESS_IMAGE_TAG: "test-tag",
+      },
+      encoding: "utf8",
+    },
+  );
+  assert.equal(r.status, 0, r.stderr);
+
+  // All three host-side persistence buckets must be created.
+  for (const sub of ["config", "share", "state"]) {
+    assert.equal(
+      fs.existsSync(path.join(localWork, ".harness", "opencode", sub)),
+      true,
+      `.harness/opencode/${sub}/ should be created in interactive mode`,
+    );
+  }
+
+  // All three docker -v mounts must target the documented container paths.
+  const cleaned = r.stdout.replace(/\r/g, "");
+  const a = dockerArgs(cleaned);
+  assert.ok(a, `expected DOCKER_INVOKED line in: ${cleaned}`);
+  const targets = [
+    "/home/harness/.config/opencode",
+    "/home/harness/.local/share/opencode",
+    "/home/harness/.local/state/opencode",
+  ];
+  for (const t of targets) {
+    assert.ok(
+      a.some((arg) => arg.endsWith(`:${t}`)),
+      `expected -v mount ending in :${t} in: ${a.join(" ")}`,
+    );
+  }
 });
