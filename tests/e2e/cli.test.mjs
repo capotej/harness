@@ -250,6 +250,60 @@ test("pi: --model with --env-file does NOT inject --provider ollama (env mode)",
   );
 });
 
+test("pi: interactive (no -p, no piped stdin) with --model emits 'pi --provider ollama --model X' (no -p)", () => {
+  // Covers the `prompt === null` branch in PiAdapter.buildCommand. That
+  // branch is only reachable when process.stdin.isTTY === true, so we
+  // allocate a PTY via util-linux `script` to fake an interactive shell.
+  // The docker shim exits 0 immediately, so the CLI returns right after
+  // emitting the DOCKER_INVOKED line.
+  //
+  // NOTE: `script` is part of bsdmainutils / util-linux and is preinstalled
+  // on the ubuntu-latest runner. If a runner ever drops it this test must
+  // be skipped (see top-level conditional below).
+  const which = spawnSync("sh", ["-c", "command -v script"], {
+    encoding: "utf8",
+  });
+  if (which.status !== 0) {
+    // Skip on platforms without `script` (rare; ubuntu-latest has it).
+    return;
+  }
+  const r = spawnSync(
+    "script",
+    ["-qfec", `node ${CLI} -m anthropic/claude-sonnet-4-5`, "/dev/null"],
+    {
+      cwd: WORK_DIR,
+      env: {
+        ...process.env,
+        PATH: `${SHIM_DIR}:${process.env.PATH}`,
+        HARNESS_IMAGE_TAG: "test-tag",
+      },
+      encoding: "utf8",
+    },
+  );
+  assert.equal(r.status, 0, r.stderr);
+  // `script` injects CR characters; strip them before parsing.
+  const cleaned = r.stdout.replace(/\r/g, "");
+  const a = dockerArgs(cleaned);
+  assert.ok(a, `expected DOCKER_INVOKED line in: ${cleaned}`);
+  const idx = a.indexOf("pi");
+  assert.notEqual(idx, -1);
+  // No -p anywhere in pi's argv (this is the no-prompt branch).
+  const tail = a.slice(idx);
+  assert.equal(
+    tail.indexOf("-p"),
+    -1,
+    `unexpected -p in interactive mode: ${tail.join(" ")}`,
+  );
+  // Exactly: pi --provider ollama --model <model>
+  assert.deepEqual(a.slice(idx, idx + 5), [
+    "pi",
+    "--provider",
+    "ollama",
+    "--model",
+    "anthropic/claude-sonnet-4-5",
+  ]);
+});
+
 // ---- opencode adapter ------------------------------------------------------
 
 test("opencode: image tag is `opencode-<version>`", () => {
