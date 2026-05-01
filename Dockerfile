@@ -2,7 +2,7 @@ FROM debian:stable-slim@sha256:8f0c555de6a2f9c2bda1b170b67479d11f7f5e3b66bb4a7a1
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ARG GH_VERSION="2.91.0"
+ARG GH_VERSION="2.92.0"
 ARG MISE_VERSION="2026.4.23"
 ARG TARGETARCH
 
@@ -50,7 +50,7 @@ ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate && \
-    pnpm install -g @mariozechner/pi-coding-agent@0.70.2 && \
+    pnpm install -g @mariozechner/pi-coding-agent@0.71.1 && \
     pnpm store prune && \
     rm -rf ~/.cache/pnpm ~/.npm && \
     mkdir -p /etc/harness/pi-defaults && \
