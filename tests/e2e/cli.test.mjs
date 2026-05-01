@@ -607,3 +607,46 @@ test("--ephemeral overrides interactive PTY: no .harness/ dir, no persist mount"
     `--ephemeral must suppress persistMounts(); got mount in: ${a.join(" ")}`,
   );
 });
+
+test("piped whitespace-only stdin takes no-prompt branch (pi has no -p)", () => {
+  // The stdin handler at the bottom of run() is:
+  //   run(input.trim() ? input : null)
+  //
+  // i.e. if the piped payload is whitespace-only (spaces, tabs, newlines),
+  // the trim() is empty and we pass `null` -> the no-prompt branch.
+  //
+  // Behaviour to lock:
+  //   - exit code 0
+  //   - implicitly ephemeral (piped, !isTTY) so NO .harness/ dir
+  //   - pi adapter's docker cmd has NO `-p` arg (interactive pi, just `pi`)
+  //
+  // This guards against a regression where `input` (raw, untrimmed) gets
+  // passed through and the adapter receives `-p "   \n"` instead.
+  const localWork = fs.mkdtempSync(path.join(os.tmpdir(), "harness-e2e-cwd-"));
+  const r = spawnSync("node", [CLI], {
+    cwd: localWork,
+    env: {
+      ...process.env,
+      PATH: `${SHIM_DIR}:${process.env.PATH}`,
+      HARNESS_IMAGE_TAG: "test-tag",
+    },
+    input: "   \n\t  \n",
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(
+    fs.existsSync(path.join(localWork, ".harness")),
+    false,
+    "piped stdin is implicitly ephemeral; .harness/ must NOT be created",
+  );
+  const a = dockerArgs(r.stdout);
+  assert.ok(a, `expected DOCKER_INVOKED line in: ${r.stdout}`);
+  const piIdx = a.indexOf("pi");
+  assert.notEqual(piIdx, -1, `expected 'pi' in docker args: ${a.join(" ")}`);
+  const tail = a.slice(piIdx);
+  assert.equal(
+    tail.includes("-p"),
+    false,
+    `whitespace stdin must NOT inject -p; got cmd: ${tail.join(" ")}`,
+  );
+});
