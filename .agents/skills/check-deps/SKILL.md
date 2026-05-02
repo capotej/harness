@@ -44,6 +44,7 @@ This project pins eight external dependencies across its Dockerfiles. Check each
 3. **Parse GitHub release output** — `gh release list` returns columns: Title / Type / Tag / Published. The tag is in column 3. Strip leading `v` for semver comparison. Skip tags containing `-rc`, `-alpha`, `-beta`, or `-pre` unless all releases are pre-releases.
 
    **hermes-agent cooldown check**: hermes tags follow `vYYYY.M.DD` (e.g. `v2026.4.23` = April 23 2026). Parse the date from the tag and compute days since release:
+
    ```bash
    python3 -c "
    from datetime import date
@@ -53,11 +54,12 @@ This project pins eight external dependencies across its Dockerfiles. Check each
    print((date.today() - release).days)
    "
    ```
+
    If the latest release is **fewer than 7 days old**, mark it as `on cooldown 🕐` and do **not** recommend upgrading, even if it is newer than the pinned version.
 
 4. **Compare and report** — produce a clean table:
 
-```
+```text
 | Dependency                    | Pinned       | Latest       | Status          |
 |-------------------------------|--------------|--------------|-----------------|
 | @mariozechner/pi-coding-agent | 0.67.68      | 0.70.1       | outdated ⬆      |
@@ -70,7 +72,7 @@ This project pins eight external dependencies across its Dockerfiles. Check each
 | debian:stable-slim            | sha256:e51b… | sha256:e51b… | up to date      |
 ```
 
-5. **For each outdated dep, show the exact edit needed** — file path, the current line, and what it should change to. Be specific so the user can apply the update immediately or ask you to do it.
+1. **For each outdated dep, show the exact edit needed** — file path, the current line, and what it should change to. Be specific so the user can apply the update immediately or ask you to do it.
 
 ## Notes on specific deps
 

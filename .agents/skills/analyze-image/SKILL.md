@@ -6,6 +6,7 @@ description: Analyze the harness Docker image size — layer-by-layer breakdown,
 # Analyze Image Size
 
 Produces a three-part breakdown of the harness Docker image:
+
 1. All available tags and their sizes
 2. Per-layer contribution (from `docker history`)
 3. Efficiency and waste report (from `dive --ci`)
@@ -53,6 +54,7 @@ docker run --rm \
 ```
 
 This outputs:
+
 - Overall efficiency percentage
 - Total wasted bytes
 - A ranked list of inefficient files (files duplicated across layers)
@@ -61,7 +63,7 @@ This outputs:
 
 Present the results as a unified report:
 
-```
+```text
 ## Image size analysis: <image>
 
 ### Tags
