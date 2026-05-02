@@ -339,7 +339,7 @@ function getImage(agent: string): string {
 }
 
 const argv = minimist<Args>(process.argv.slice(2), {
-  boolean: ["help", "h", "no-verify", "ephemeral"],
+  boolean: ["help", "h", "no-verify", "ephemeral", "skills"],
   string: [
     "env-file",
     "e",
@@ -447,11 +447,11 @@ async function run(prompt: string | null): Promise<void> {
 
   if (!noSkills) {
     const skillDirs = [
-      { host: path.join(os.homedir(), ".agents", "skills"), container: "/home/harness/.agents/skills" },
-      { host: path.join(os.homedir(), ".claude", "skills"), container: "/home/harness/.claude/skills" },
+      { host: path.resolve(os.homedir(), ".agents", "skills"), container: "/home/harness/.agents/skills" },
+      { host: path.resolve(os.homedir(), ".claude", "skills"), container: "/home/harness/.claude/skills" },
     ];
     for (const sd of skillDirs) {
-      if (fs.existsSync(sd.host)) {
+      if (fs.existsSync(sd.host) && fs.statSync(sd.host).isDirectory()) {
         volumeArgs.push("-v", `${sd.host}:${sd.container}`);
       }
     }
