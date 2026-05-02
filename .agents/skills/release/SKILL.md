@@ -54,6 +54,7 @@ Collect these as bullet points for the changelog: `- <short-hash> <message>`
 ## Step 4: Update CHANGELOG.md
 
 Get today's date:
+
 ```bash
 date +%Y-%m-%d
 ```
@@ -63,6 +64,7 @@ Based on the commits collected, write a 1–3 sentence prose summary of what cha
 **Dockerfile dependency changes** — Diff `Dockerfile`, `Dockerfile.opencode`, and `Dockerfile.hermes` against the last tag to find any version bumps to installed tools (e.g. `@mariozechner/pi-coding-agent`, `opencode-ai`, `hermes-agent`, `uv`, `pnpm`, `debian`, etc.). If any are found, include a `### Dependency Updates` section listing each change as `- updated <package> from <old> to <new>`.
 
 **Upstream release notes for pi, opencode, and hermes-agent** — If any of these three were bumped, fetch the release notes for every version between the old pin (exclusive) and the new pin (inclusive) and include them in a `### Upstream Release Notes` section. Run the fetches in parallel:
+
 - `@mariozechner/pi-coding-agent`: use `npm show @mariozechner/pi-coding-agent versions --json` to enumerate intermediate versions, then `gh release view <tag> --repo badlogic/pi-mono --json tagName,body` for each (tags match npm versions with a `v` prefix, e.g. `v0.70.2`)
 - `opencode-ai`: `gh release view <tag> --repo sst/opencode --json tagName,body` for each version between old and new (tags are prefixed with `v`)
 - `hermes-agent`: `gh release view <tag> --repo NousResearch/hermes-agent --json tagName,body` for each tag between old and new
@@ -91,6 +93,7 @@ Summarize each release in 2–4 bullet points (new features, breaking changes, n
 Omit `### Dependency Updates` and `### Upstream Release Notes` entirely if there are no relevant changes.
 
 **If CHANGELOG.md does not exist**, create it:
+
 ```markdown
 # Changelog
 
@@ -121,8 +124,9 @@ Edit the `version` field directly in `package.json`. Do not use `npm version` �
 
 The fly.toml example in `README.md` contains a pinned hermes image tag (e.g. `ghcr.io/capotej/harness:hermes-1.4.4`). Update it to the new version:
 
-```
+```toml
 image = "ghcr.io/capotej/harness:hermes-<new-version>"
+
 ```
 
 Search for the pattern `hermes-[0-9]` in `README.md` and replace all occurrences with the new version.
@@ -198,6 +202,7 @@ gh run view <run-id> --repo <owner>/<repo>
 ```
 
 Check that **all jobs** show `✓` (success). Pay particular attention to:
+
 - `build-variant (hermes, ...)` — most likely to fail due to the uv attestation verification step
 - `merge-variant (hermes)` and `merge-variant (opencode)` — these push the versioned image tags
 
@@ -214,6 +219,7 @@ Only report the release as complete once the entire workflow is green.
 ## Final report
 
 Tell the user:
+
 - Version released
 - The CHANGELOG entry added
 - GitHub release URL (from `gh release create` stdout)

@@ -50,6 +50,7 @@ The image tag is selected at runtime based on `--agent`: pi uses `<version>`, ot
 **Persistence:** Interactive runs (no `-p`, no piped stdin, no `--ephemeral`) bind-mount `.harness/<agent>/` from the working directory into the container. Each adapter declares its own mount points via `persistMounts()`. One-shot runs are implicitly ephemeral.
 
 **Entrypoints:** Each variant has its own entrypoint that seeds default configs into the agent's home directory and detects the provider from env vars:
+
 - `entrypoint.sh` (pi) — seeds pi defaults from `/etc/harness/pi-defaults`
 - `entrypoint-opencode.sh` — detects `OPENROUTER_API_KEY` to switch between LM Studio and OpenRouter configs; sets `OPENCODE_MODEL` env var
 - `entrypoint-hermes.sh` — seeds hermes defaults from `/etc/harness/hermes-defaults/{local,openrouter}`; sets `HERMES_HOME` based on provider
