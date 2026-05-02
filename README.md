@@ -16,6 +16,7 @@ and [`hermes`](https://github.com/NousResearch/hermes-agent) — so you can poin
 - **Supply-chain hardened** — the image is signed and verified with cosign and SLSA provenance on every run; dependencies installed inside the container are always pinned and verified where possible and a 7-day "cooldown" is used to mitigate supply-chain attacks.
 - **Local-first** — defaults to LM Studio with `gemma-4-e4b`. Drop in an `--env-file` to use Anthropic, OpenRouter, OpenAI, Gemini, and others.
 - **Stateful or one-shot** — interactive runs persist agent state under `.harness/<agent>/`; one-shot prompts (`-p` or piped stdin) stay ephemeral.
+- **User skills** — automatically mounts `~/.agents/skills` and `~/.claude/skills` into the container so agents can discover and use custom skills. Disable with `--no-skills`.
 - **Zero install** — `npx @capotej/harness` just works.
 
 ## Quickstart
@@ -192,7 +193,7 @@ npx @capotej/harness --no-verify -p "write me a fizzbuzz in Go"
 
 ### Dependency cooldown
 
-When an agent runs `pnpm install` or `uv pip install` inside the container, any package published in the last 7 days is rejected — a guard against supply-chain compromises that are typically discovered and yanked within hours.
+The image build enforces a 7-day cooldown on dependency resolution — a guard against supply-chain compromises that are typically discovered and yanked within hours.
 
 - **pnpm**: `PNPM_MINIMUM_RELEASE_AGE=10080` (minutes) via environment variable
 - **uv**: `--exclude-newer` set to 7 days ago at image build time
@@ -219,6 +220,7 @@ Add `.harness/` to your `.gitignore`.
 | `--model`     | `-m`  | Override the model used by the agent |
 | `--agent`     | `-a`  | Select agent: `pi`, `opencode`, `hermes` (default: `pi`) |
 | `--no-verify` |       | Skip cosign signature and provenance verification |
+| `--no-skills` |       | Disable mounting user skills directories (`~/.agents/skills`, `~/.claude/skills`) |
 | `--ephemeral` |       | Disable session persistence (implied by `-p` and piped stdin) |
 | `--help`      | `-h`  | Show help |
 

@@ -707,3 +707,131 @@ test("opencode interactive (no --ephemeral) creates all three persistence dirs a
     );
   }
 });
+
+// ---- user skills mounting --------------------------------------------------
+//
+// All skills tests use a temp directory as HOME via extraEnv so the CLI's
+// os.homedir() resolves there.  This avoids creating/removing dirs in the
+// caller's real home directory and eliminates the risk of leaving artifacts
+// behind on test failure.
+
+function makeSkillsHome() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "harness-skills-"));
+  return {
+    home: tmp,
+    cleanup: () => fs.rmSync(tmp, { recursive: true, force: true }),
+  };
+}
+
+test("existing ~/.agents/skills is mounted into the container", () => {
+  const { home, cleanup } = makeSkillsHome();
+  fs.mkdirSync(path.join(home, ".agents", "skills"), { recursive: true });
+  try {
+    const r = runCli(["-p", "noop"], { extraEnv: { HOME: home } });
+    assert.equal(r.status, 0, r.stderr);
+    const a = dockerArgs(r.stdout);
+    assert.ok(a, "expected DOCKER_INVOKED line");
+    assert.ok(
+      a.some((arg) => arg.endsWith(":/home/harness/.agents/skills")),
+      `expected .agents/skills mount in: ${a.join(" ")}`,
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("existing ~/.claude/skills is mounted into the container", () => {
+  const { home, cleanup } = makeSkillsHome();
+  fs.mkdirSync(path.join(home, ".claude", "skills"), { recursive: true });
+  try {
+    const r = runCli(["-p", "noop"], { extraEnv: { HOME: home } });
+    assert.equal(r.status, 0, r.stderr);
+    const a = dockerArgs(r.stdout);
+    assert.ok(a, "expected DOCKER_INVOKED line");
+    assert.ok(
+      a.some((arg) => arg.endsWith(":/home/harness/.claude/skills")),
+      `expected .claude/skills mount in: ${a.join(" ")}`,
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("--no-skills suppresses all skills mounts", () => {
+  const { home, cleanup } = makeSkillsHome();
+  fs.mkdirSync(path.join(home, ".agents", "skills"), { recursive: true });
+  fs.mkdirSync(path.join(home, ".claude", "skills"), { recursive: true });
+  try {
+    const r = runCli(["--no-skills", "-p", "noop"], {
+      extraEnv: { HOME: home },
+    });
+    assert.equal(r.status, 0, r.stderr);
+    const a = dockerArgs(r.stdout);
+    assert.ok(a, "expected DOCKER_INVOKED line");
+    assert.equal(
+      a.some((arg) => arg.includes("/.agents/skills")),
+      false,
+      `--no-skills must not mount .agents/skills: ${a.join(" ")}`,
+    );
+    assert.equal(
+      a.some((arg) => arg.includes("/.claude/skills")),
+      false,
+      `--no-skills must not mount .claude/skills: ${a.join(" ")}`,
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("non-existent skills directories are silently skipped", () => {
+  // Empty temp HOME — no skills dirs exist, so both should be skipped.
+  const { home, cleanup } = makeSkillsHome();
+  try {
+    const r = runCli(["-p", "noop"], { extraEnv: { HOME: home } });
+    assert.equal(r.status, 0, r.stderr);
+    const a = dockerArgs(r.stdout);
+    assert.ok(a, "expected DOCKER_INVOKED line");
+    assert.equal(
+      a.some((arg) => arg.includes("/.agents/skills")),
+      false,
+      `non-existent .agents/skills must not be mounted: ${a.join(" ")}`,
+    );
+    assert.equal(
+      a.some((arg) => arg.includes("/.claude/skills")),
+      false,
+      `non-existent .claude/skills must not be mounted: ${a.join(" ")}`,
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("skills mounts work with --file mode", () => {
+  const { home, cleanup } = makeSkillsHome();
+  fs.mkdirSync(path.join(home, ".agents", "skills"), { recursive: true });
+  try {
+    const r = runCli(["--file", SAMPLE_FILE, "-p", "noop"], {
+      extraEnv: { HOME: home },
+    });
+    assert.equal(r.status, 0, r.stderr);
+    const a = dockerArgs(r.stdout);
+    assert.ok(a, "expected DOCKER_INVOKED line");
+    // The file mount and skills mount should both be present.
+    assert.ok(
+      a.some((arg) => arg.endsWith(":/workspace/script.py")),
+      `expected file mount in: ${a.join(" ")}`,
+    );
+    assert.ok(
+      a.some((arg) => arg.endsWith(":/home/harness/.agents/skills")),
+      `expected skills mount in --file mode: ${a.join(" ")}`,
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("--help documents --no-skills", () => {
+  const r = runCli(["--help"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /--no-skills/);
+});

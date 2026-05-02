@@ -9,8 +9,10 @@ import minimist, { type ParsedArgs } from "minimist";
 interface Args extends ParsedArgs {
   help: boolean;
   h: boolean;
-  "no-verify": boolean;
+  // minimist --no- prefix: --no-verify / --no-skills set these to false; NOT in boolean[] to avoid double-negation
+  verify?: boolean;
   ephemeral: boolean;
+  skills?: boolean;
   "env-file"?: string;
   e?: string;
   file?: string;
@@ -316,6 +318,7 @@ Options:
   -m, --model <model>    Override the model used by the agent
   -a, --agent <name>     Select the coding agent adapter: pi, opencode, hermes (default: pi)
   --no-verify            Skip cosign image signature and provenance verification
+  --no-skills            Disable mounting user skills directories (~/.agents/skills, ~/.claude/skills)
   --ephemeral            Disable session persistence (implied by -p and piped stdin)
   -h, --help             Show this help message
 
@@ -337,7 +340,7 @@ function getImage(agent: string): string {
 }
 
 const argv = minimist<Args>(process.argv.slice(2), {
-  boolean: ["help", "h", "no-verify", "ephemeral"],
+  boolean: ["help", "h", "ephemeral"],
   string: [
     "env-file",
     "e",
@@ -365,7 +368,8 @@ if (argv.help) {
   process.exit(0);
 }
 
-const noVerify = argv["no-verify"];
+const noVerify = argv.verify === false;
+const noSkills = argv.skills === false;
 const envFilePath = argv["env-file"] || null;
 const fileArg = argv.file || null;
 const promptArg = argv.prompt || null;
@@ -438,6 +442,24 @@ async function run(prompt: string | null): Promise<void> {
         const hostFullPath = path.join(persistRoot, mount.hostSubpath);
         fs.mkdirSync(hostFullPath, { recursive: true });
         volumeArgs.push("-v", `${hostFullPath}:${mount.containerPath}`);
+      }
+    }
+  }
+
+  if (!noSkills) {
+    const skillDirs = [
+      {
+        host: path.resolve(os.homedir(), ".agents", "skills"),
+        container: "/home/harness/.agents/skills",
+      },
+      {
+        host: path.resolve(os.homedir(), ".claude", "skills"),
+        container: "/home/harness/.claude/skills",
+      },
+    ];
+    for (const sd of skillDirs) {
+      if (fs.existsSync(sd.host) && fs.statSync(sd.host).isDirectory()) {
+        volumeArgs.push("-v", `${sd.host}:${sd.container}`);
       }
     }
   }
