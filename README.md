@@ -2,7 +2,8 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="logo-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="logo-light.png">
-    <img src="logo-light.png" alt="harness" width="250" />
+    <img alt="harness" src="logo-light.png#gh-light-mode-only" width="250">
+    <img alt="harness" src="logo-dark.png#gh-dark-mode-only" width="250">
   </picture>
 </p>
 
