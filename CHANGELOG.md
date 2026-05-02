@@ -1,5 +1,66 @@
 # Changelog
 
+## [1.6.0] - 2026-05-02
+
+### Summary
+Automatically mounts user skills directories (`~/.agents/skills`, `~/.claude/skills`) into the container so agents can discover custom skills — disable with `harness --no-skills`. Adds Kubernetes deployment instructions for hermes. Unifies the 7-day dependency cooldown enforcement across the check-deps skill, AGENTS.md, and the hermes Dockerfile (`--exclude-newer`). Fixes an npm config warning caused by the deprecated `minimumReleaseAge` setting. Expands the e2e test suite with coverage for ephemeral persistence, whitespace stdin handling, and interactive run mount materialization.
+
+### Changes
+- 5cb9773 feat: mount user skills directories into container, add --no-skills flag (#37)
+- 385b43f fix lint
+- 78f0103 refactor: unify 7-day dependency cooldown across check-deps skill, AGENTS.md, and Dockerfile
+- 7879c1d fix: npm warns about unknown config minimumReleaseAge (#34)
+- 7efa1d1 fix: resolve markdownlint errors in .agents/skills and AGENTS.md (#35)
+- 02fae8d de-CLAUDE.md
+- 10f2865 test(opencode): interactive run materializes all 3 persistence dirs and mounts (#30)
+- 21235cc chore: update dependencies (#32)
+- 84ddbe5 test(cli): whitespace-only piped stdin takes no-prompt branch (pi has no -p) (#31)
+- 50976dc test(cli): --ephemeral overrides interactive PTY (no .harness/, no persist mount) (#29)
+- 31792d4 test(pi): no-prompt branch with --model emits --provider ollama (no -p) (#22)
+- 9bb52cf add k8s deploy instructions
+- b30ac7c docs(readme): add "Customizing the claw — don't extend the image" section (#28)
+
+### Dependency Updates
+- updated `gh` from 2.91.0 to 2.92.0
+- updated `@mariozechner/pi-coding-agent` from 0.70.2 to 0.71.1
+- updated `opencode-ai` from 1.14.25 to 1.14.31
+- updated `uv` from 0.11.7 to 0.11.8
+- updated `hermes-agent` from v2026.4.23 to v2026.4.30
+
+### Upstream Release Notes
+
+#### @mariozechner/pi-coding-agent 0.70.2 → 0.71.1
+
+**v0.70.3** — Added `pi update` self-update support and Azure Cognitive Services endpoint for OpenAI; extension-controlled working row visibility via `ctx.ui.setWorkingVisible()`; fixed Kitty keyboard protocol duplicate characters, Bun sandboxed startup, symlinked package duplication, and Bedrock prompt-caching for inference profile ARNs.
+
+**v0.70.4** — Fixed packaged `pi` startup failure from session selector importing a source-only utility path.
+
+**v0.70.5** — Fixed HTML export preserving ANSI-renderer trailing padding as extra blank wrapped lines.
+
+**v0.70.6** — Added Cloudflare Workers AI as a built-in provider; improved update checks with `pi.dev` and `pi/<version>` user agent; fixed HTML export to escape embedded image data preventing markup injection; fixed Bun package manager startup and `pi update --self` detection on Windows.
+
+**v0.71.0** — **Breaking:** removed Google Gemini CLI and Antigravity providers. Added Cloudflare AI Gateway, Moonshot AI, and Mistral Medium 3.5 providers. Extension APIs can replace finalized messages, wrap custom editor factories, and observe thinking level changes. Added `PI_CODING_AGENT_SESSION_DIR` env var. Fixed `grep`/`find` tool argument injection for flag-like patterns, DeepSeek V4 Flash `xhigh` thinking support, and numerous Windows/WSL/Vertex fixes.
+
+**v0.71.1** — Added `websocket-cached` transport option for OpenAI Codex provider, keeping the same WebSocket open and sending only new conversation items after the first request.
+
+#### opencode-ai 1.14.25 → 1.14.31
+
+**v1.14.26** — Fixed config parsing to preserve permission rule order; fixed OpenRouter DeepSeek reasoning output; added Zed editor selection support.
+
+**v1.14.27** — Added configurable default shell for terminals and agent commands; reduced terminal noise during TUI workspace creation.
+
+**v1.14.28** — Fixed `opencode upgrade` failing for bun installs outside a package.json directory.
+
+**v1.14.29** — Sessions keep relative workspace paths; Moonshot/Kimi tool schemas sanitized; shell cancellations finish cleanly; tool streaming defaults off for non-Anthropic models; LSP tool forwards workspace symbol query; Zed context polling stays responsive.
+
+**v1.14.30** — Fixed missing Desktop sessions from path mismatches; added Mistral Medium 3.5 with reasoning; instruction precedence now applies global before project/skill; session filtering by current path with setting to show whole project; reduced memory growth in long-running bash tool usage.
+
+**v1.14.31** — Azure setup prompts for resource name; task child sessions preserve parent `external_dir` and deny permissions; invalid remote MCP URLs fail with clear error.
+
+#### hermes-agent v2026.4.23 → v2026.4.30
+
+**v2026.4.30** — Major v0.12.0 "Curator" release: autonomous background Curator grades/prunes/consolidates skill library on a cron schedule; self-improvement loop upgraded to class-first rubric-based grading with proper runtime inheritance. Four new inference providers (GMI Cloud, Azure AI Foundry, MiniMax OAuth, Tencent Tokenhub), LM Studio promoted to first-class provider, Microsoft Teams as 19th messaging platform via plugin architecture, native Spotify tools and Google Meet plugin. ComfyUI v5 and TouchDesigner-MCP bundled by default. `hermes -z` one-shot mode added. TUI cold start cut ~57%. Secret redaction now off by default.
+
 ## [1.5.0] - 2026-04-26
 
 ### Summary
