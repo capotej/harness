@@ -21,6 +21,7 @@ interface Args extends ParsedArgs {
   m?: string;
   agent?: string;
   a?: string;
+  skills?: boolean;
 }
 
 interface AgentOptions {
@@ -316,6 +317,7 @@ Options:
   -m, --model <model>    Override the model used by the agent
   -a, --agent <name>     Select the coding agent adapter: pi, opencode, hermes (default: pi)
   --no-verify            Skip cosign image signature and provenance verification
+  --no-skills            Disable mounting user skills directories (~/.agents/skills, ~/.claude/skills)
   --ephemeral            Disable session persistence (implied by -p and piped stdin)
   -h, --help             Show this help message
 
@@ -366,6 +368,7 @@ if (argv.help) {
 }
 
 const noVerify = argv["no-verify"];
+const noSkills = argv.skills === false;
 const envFilePath = argv["env-file"] || null;
 const fileArg = argv.file || null;
 const promptArg = argv.prompt || null;
@@ -438,6 +441,18 @@ async function run(prompt: string | null): Promise<void> {
         const hostFullPath = path.join(persistRoot, mount.hostSubpath);
         fs.mkdirSync(hostFullPath, { recursive: true });
         volumeArgs.push("-v", `${hostFullPath}:${mount.containerPath}`);
+      }
+    }
+  }
+
+  if (!noSkills) {
+    const skillDirs = [
+      { host: path.join(os.homedir(), ".agents", "skills"), container: "/home/harness/.agents/skills" },
+      { host: path.join(os.homedir(), ".claude", "skills"), container: "/home/harness/.claude/skills" },
+    ];
+    for (const sd of skillDirs) {
+      if (fs.existsSync(sd.host)) {
+        volumeArgs.push("-v", `${sd.host}:${sd.container}`);
       }
     }
   }

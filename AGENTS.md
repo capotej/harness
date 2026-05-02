@@ -49,6 +49,13 @@ The image tag is selected at runtime based on `--agent`: pi uses `<version>`, ot
 
 **Persistence:** Interactive runs (no `-p`, no piped stdin, no `--ephemeral`) bind-mount `.harness/<agent>/` from the working directory into the container. Each adapter declares its own mount points via `persistMounts()`. One-shot runs are implicitly ephemeral.
 
+**User skills:** By default, harness bind-mounts the host user's skills directories into the container so agents can discover and use custom skills. Two source directories are checked (only if they exist on the host):
+
+- `~/.agents/skills` → `/home/harness/.agents/skills`
+- `~/.claude/skills` → `/home/harness/.claude/skills`
+
+Skills mounting applies to all run modes (interactive, one-shot, `--file`). Non-existent directories are silently skipped. Disable with `--no-skills`.
+
 **Entrypoints:** Each variant has its own entrypoint that seeds default configs into the agent's home directory and detects the provider from env vars:
 
 - `entrypoint.sh` (pi) — seeds pi defaults from `/etc/harness/pi-defaults`
@@ -82,6 +89,7 @@ E2E tests in `tests/e2e/cli.test.mjs` use a docker shim (a fake `docker` binary 
 - Volume mount construction (file vs directory, adapter-specific mount points)
 - `--env-file` forwarding across all adapters
 - `--model` handling (local vs env-file mode, `--provider ollama` injection)
+- User skills mounting (`~/.agents/skills`, `~/.claude/skills`, `--no-skills` flag)
 
 Run with: `pnpm test:e2e` (requires `pnpm build` first).
 
