@@ -709,14 +709,22 @@ test("opencode interactive (no --ephemeral) creates all three persistence dirs a
 });
 
 // ---- user skills mounting --------------------------------------------------
+//
+// All skills tests use a temp directory as HOME via extraEnv so the CLI's
+// os.homedir() resolves there.  This avoids creating/removing dirs in the
+// caller's real home directory and eliminates the risk of leaving artifacts
+// behind on test failure.
+
+function makeSkillsHome() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "harness-skills-"));
+  return { home: tmp, cleanup: () => fs.rmSync(tmp, { recursive: true, force: true }) };
+}
 
 test("existing ~/.agents/skills is mounted into the container", () => {
-  const agentsSkills = path.join(os.homedir(), ".agents", "skills");
-  // Create the directory if it doesn't exist so the test is deterministic.
-  const created = !fs.existsSync(agentsSkills);
-  if (created) fs.mkdirSync(agentsSkills, { recursive: true });
+  const { home, cleanup } = makeSkillsHome();
+  fs.mkdirSync(path.join(home, ".agents", "skills"), { recursive: true });
   try {
-    const r = runCli(["-p", "noop"]);
+    const r = runCli(["-p", "noop"], { extraEnv: { HOME: home } });
     assert.equal(r.status, 0, r.stderr);
     const a = dockerArgs(r.stdout);
     assert.ok(a, "expected DOCKER_INVOKED line");
@@ -725,16 +733,15 @@ test("existing ~/.agents/skills is mounted into the container", () => {
       `expected .agents/skills mount in: ${a.join(" ")}`,
     );
   } finally {
-    if (created) fs.rmSync(agentsSkills, { recursive: true, force: true });
+    cleanup();
   }
 });
 
 test("existing ~/.claude/skills is mounted into the container", () => {
-  const claudeSkills = path.join(os.homedir(), ".claude", "skills");
-  const created = !fs.existsSync(claudeSkills);
-  if (created) fs.mkdirSync(claudeSkills, { recursive: true });
+  const { home, cleanup } = makeSkillsHome();
+  fs.mkdirSync(path.join(home, ".claude", "skills"), { recursive: true });
   try {
-    const r = runCli(["-p", "noop"]);
+    const r = runCli(["-p", "noop"], { extraEnv: { HOME: home } });
     assert.equal(r.status, 0, r.stderr);
     const a = dockerArgs(r.stdout);
     assert.ok(a, "expected DOCKER_INVOKED line");
@@ -743,19 +750,16 @@ test("existing ~/.claude/skills is mounted into the container", () => {
       `expected .claude/skills mount in: ${a.join(" ")}`,
     );
   } finally {
-    if (created) fs.rmSync(claudeSkills, { recursive: true, force: true });
+    cleanup();
   }
 });
 
 test("--no-skills suppresses all skills mounts", () => {
-  const agentsSkills = path.join(os.homedir(), ".agents", "skills");
-  const claudeSkills = path.join(os.homedir(), ".claude", "skills");
-  const createdAgents = !fs.existsSync(agentsSkills);
-  const createdClaude = !fs.existsSync(claudeSkills);
-  if (createdAgents) fs.mkdirSync(agentsSkills, { recursive: true });
-  if (createdClaude) fs.mkdirSync(claudeSkills, { recursive: true });
+  const { home, cleanup } = makeSkillsHome();
+  fs.mkdirSync(path.join(home, ".agents", "skills"), { recursive: true });
+  fs.mkdirSync(path.join(home, ".claude", "skills"), { recursive: true });
   try {
-    const r = runCli(["--no-skills", "-p", "noop"]);
+    const r = runCli(["--no-skills", "-p", "noop"], { extraEnv: { HOME: home } });
     assert.equal(r.status, 0, r.stderr);
     const a = dockerArgs(r.stdout);
     assert.ok(a, "expected DOCKER_INVOKED line");
@@ -770,21 +774,15 @@ test("--no-skills suppresses all skills mounts", () => {
       `--no-skills must not mount .claude/skills: ${a.join(" ")}`,
     );
   } finally {
-    if (createdAgents) fs.rmSync(agentsSkills, { recursive: true, force: true });
-    if (createdClaude) fs.rmSync(claudeSkills, { recursive: true, force: true });
+    cleanup();
   }
 });
 
 test("non-existent skills directories are silently skipped", () => {
-  // Ensure neither directory exists so we test the "skip missing" path.
-  const agentsSkills = path.join(os.homedir(), ".agents", "skills");
-  const claudeSkills = path.join(os.homedir(), ".claude", "skills");
-  const existedAgents = fs.existsSync(agentsSkills);
-  const existedClaude = fs.existsSync(claudeSkills);
-  if (existedAgents) fs.rmSync(agentsSkills, { recursive: true, force: true });
-  if (existedClaude) fs.rmSync(claudeSkills, { recursive: true, force: true });
+  // Empty temp HOME — no skills dirs exist, so both should be skipped.
+  const { home, cleanup } = makeSkillsHome();
   try {
-    const r = runCli(["-p", "noop"]);
+    const r = runCli(["-p", "noop"], { extraEnv: { HOME: home } });
     assert.equal(r.status, 0, r.stderr);
     const a = dockerArgs(r.stdout);
     assert.ok(a, "expected DOCKER_INVOKED line");
@@ -799,17 +797,15 @@ test("non-existent skills directories are silently skipped", () => {
       `non-existent .claude/skills must not be mounted: ${a.join(" ")}`,
     );
   } finally {
-    if (existedAgents) fs.mkdirSync(agentsSkills, { recursive: true });
-    if (existedClaude) fs.mkdirSync(claudeSkills, { recursive: true });
+    cleanup();
   }
 });
 
 test("skills mounts work with --file mode", () => {
-  const agentsSkills = path.join(os.homedir(), ".agents", "skills");
-  const created = !fs.existsSync(agentsSkills);
-  if (created) fs.mkdirSync(agentsSkills, { recursive: true });
+  const { home, cleanup } = makeSkillsHome();
+  fs.mkdirSync(path.join(home, ".agents", "skills"), { recursive: true });
   try {
-    const r = runCli(["--file", SAMPLE_FILE, "-p", "noop"]);
+    const r = runCli(["--file", SAMPLE_FILE, "-p", "noop"], { extraEnv: { HOME: home } });
     assert.equal(r.status, 0, r.stderr);
     const a = dockerArgs(r.stdout);
     assert.ok(a, "expected DOCKER_INVOKED line");
@@ -823,7 +819,7 @@ test("skills mounts work with --file mode", () => {
       `expected skills mount in --file mode: ${a.join(" ")}`,
     );
   } finally {
-    if (created) fs.rmSync(agentsSkills, { recursive: true, force: true });
+    cleanup();
   }
 });
 

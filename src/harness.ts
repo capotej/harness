@@ -339,7 +339,7 @@ function getImage(agent: string): string {
 }
 
 const argv = minimist<Args>(process.argv.slice(2), {
-  boolean: ["help", "h", "no-verify", "ephemeral", "skills"],
+  boolean: ["help", "h", "no-verify", "ephemeral"],
   string: [
     "env-file",
     "e",
