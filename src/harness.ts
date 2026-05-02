@@ -447,8 +447,14 @@ async function run(prompt: string | null): Promise<void> {
 
   if (!noSkills) {
     const skillDirs = [
-      { host: path.resolve(os.homedir(), ".agents", "skills"), container: "/home/harness/.agents/skills" },
-      { host: path.resolve(os.homedir(), ".claude", "skills"), container: "/home/harness/.claude/skills" },
+      {
+        host: path.resolve(os.homedir(), ".agents", "skills"),
+        container: "/home/harness/.agents/skills",
+      },
+      {
+        host: path.resolve(os.homedir(), ".claude", "skills"),
+        container: "/home/harness/.claude/skills",
+      },
     ];
     for (const sd of skillDirs) {
       if (fs.existsSync(sd.host) && fs.statSync(sd.host).isDirectory()) {

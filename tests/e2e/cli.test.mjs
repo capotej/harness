@@ -717,7 +717,10 @@ test("opencode interactive (no --ephemeral) creates all three persistence dirs a
 
 function makeSkillsHome() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "harness-skills-"));
-  return { home: tmp, cleanup: () => fs.rmSync(tmp, { recursive: true, force: true }) };
+  return {
+    home: tmp,
+    cleanup: () => fs.rmSync(tmp, { recursive: true, force: true }),
+  };
 }
 
 test("existing ~/.agents/skills is mounted into the container", () => {
@@ -759,7 +762,9 @@ test("--no-skills suppresses all skills mounts", () => {
   fs.mkdirSync(path.join(home, ".agents", "skills"), { recursive: true });
   fs.mkdirSync(path.join(home, ".claude", "skills"), { recursive: true });
   try {
-    const r = runCli(["--no-skills", "-p", "noop"], { extraEnv: { HOME: home } });
+    const r = runCli(["--no-skills", "-p", "noop"], {
+      extraEnv: { HOME: home },
+    });
     assert.equal(r.status, 0, r.stderr);
     const a = dockerArgs(r.stdout);
     assert.ok(a, "expected DOCKER_INVOKED line");
@@ -805,7 +810,9 @@ test("skills mounts work with --file mode", () => {
   const { home, cleanup } = makeSkillsHome();
   fs.mkdirSync(path.join(home, ".agents", "skills"), { recursive: true });
   try {
-    const r = runCli(["--file", SAMPLE_FILE, "-p", "noop"], { extraEnv: { HOME: home } });
+    const r = runCli(["--file", SAMPLE_FILE, "-p", "noop"], {
+      extraEnv: { HOME: home },
+    });
     assert.equal(r.status, 0, r.stderr);
     const a = dockerArgs(r.stdout);
     assert.ok(a, "expected DOCKER_INVOKED line");
