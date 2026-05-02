@@ -21,6 +21,7 @@ interface Args extends ParsedArgs {
   m?: string;
   agent?: string;
   a?: string;
+  // minimist --no- prefix: --no-skills sets this to false; NOT in boolean[] to avoid double-negation
   skills?: boolean;
 }
 
