@@ -9,8 +9,10 @@ import minimist, { type ParsedArgs } from "minimist";
 interface Args extends ParsedArgs {
   help: boolean;
   h: boolean;
-  "no-verify": boolean;
+  // minimist --no- prefix: --no-verify / --no-skills set these to false; NOT in boolean[] to avoid double-negation
+  verify?: boolean;
   ephemeral: boolean;
+  skills?: boolean;
   "env-file"?: string;
   e?: string;
   file?: string;
@@ -21,8 +23,6 @@ interface Args extends ParsedArgs {
   m?: string;
   agent?: string;
   a?: string;
-  // minimist --no- prefix: --no-skills sets this to false; NOT in boolean[] to avoid double-negation
-  skills?: boolean;
 }
 
 interface AgentOptions {
@@ -340,7 +340,7 @@ function getImage(agent: string): string {
 }
 
 const argv = minimist<Args>(process.argv.slice(2), {
-  boolean: ["help", "h", "no-verify", "ephemeral"],
+  boolean: ["help", "h", "ephemeral"],
   string: [
     "env-file",
     "e",
@@ -368,7 +368,7 @@ if (argv.help) {
   process.exit(0);
 }
 
-const noVerify = argv["no-verify"];
+const noVerify = argv.verify === false;
 const noSkills = argv.skills === false;
 const envFilePath = argv["env-file"] || null;
 const fileArg = argv.file || null;
