@@ -1,10 +1,6 @@
 <p align="center" style="margin-bottom: 0">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="logo-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="logo-light.png">
-    <img alt="harness" src="logo-light.png#gh-light-mode-only" width="250">
-    <img alt="harness" src="logo-dark.png#gh-dark-mode-only" width="250">
-  </picture>
+  <img alt="harness" src="logo-light.png#gh-light-mode-only" width="250">
+  <img alt="harness" src="logo-dark.png#gh-dark-mode-only" width="250">
 </p>
 
 <p align="center">
