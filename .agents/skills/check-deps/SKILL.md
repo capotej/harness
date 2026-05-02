@@ -1,6 +1,12 @@
 ---
 name: check-deps
-description: Check whether pinned dependencies in the harness Dockerfiles have newer versions available. Use this skill whenever the user asks to check for dependency updates, see if packages are outdated, check for updates, review pinned versions, or any variation of "are deps up to date". Triggers on: "check deps", "check for updates", "are dependencies up to date", "update deps check", "any new versions", "deps outdated", "bump dependencies".
+description: >
+  Check whether pinned dependencies in the harness Dockerfiles have newer versions available.
+  Use this skill whenever the user asks to check for dependency updates, see if
+  packages are outdated, check for updates, review pinned versions, or any
+  variation of "are deps up to date". Triggers on: "check deps", "check for
+  updates", "are dependencies up to date", "update deps check", "any new
+  versions", "deps outdated", "bump dependencies".
 ---
 
 # Dependency Version Check
