@@ -50,6 +50,7 @@ This project pins eight external dependencies across its Dockerfiles. Check each
    - **GitHub releases** (`gh`, `cosign`, `uv`, `hermes-agent`): Use the publish date from the API response (`published_at` field when using `curl -s https://api.github.com/repos/<owner>/<repo>/releases?per_page=5` or column 4 from `gh release list`). Compute days since release.
 
    - **hermes-agent** tags follow `vYYYY.M.DD` (e.g. `v2026.4.23` = April 23 2026). Parse the date from the tag:
+
      ```bash
      python3 -c "
      from datetime import date
@@ -81,7 +82,7 @@ This project pins eight external dependencies across its Dockerfiles. Check each
 | debian:stable-slim            | sha256:e51b… | sha256:e51b… | up to date      |
 ```
 
-6. **For each outdated dep, show the exact edit needed** — file path, the current line, and what it should change to. Be specific so the user can apply the update immediately or ask you to do it.
+1. **For each outdated dep, show the exact edit needed** — file path, the current line, and what it should change to. Be specific so the user can apply the update immediately or ask you to do it.
 
 ## Notes on specific deps
 
