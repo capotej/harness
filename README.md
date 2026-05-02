@@ -193,7 +193,7 @@ npx @capotej/harness --no-verify -p "write me a fizzbuzz in Go"
 
 ### Dependency cooldown
 
-When an agent runs `pnpm install` or `uv pip install` inside the container, any package published in the last 7 days is rejected — a guard against supply-chain compromises that are typically discovered and yanked within hours.
+The image build enforces a 7-day cooldown on dependency resolution — a guard against supply-chain compromises that are typically discovered and yanked within hours.
 
 - **pnpm**: `PNPM_MINIMUM_RELEASE_AGE=10080` (minutes) via environment variable
 - **uv**: `--exclude-newer` set to 7 days ago at image build time
