@@ -1,5 +1,9 @@
 <p align="center" style="margin-bottom: 0">
-  <img src="logo.png" alt="harness" width="500" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="logo-light.png">
+    <img src="logo-light.png" alt="harness" width="500" />
+  </picture>
 </p>
 
 <p align="center">
