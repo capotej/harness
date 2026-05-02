@@ -56,8 +56,7 @@ RUN corepack enable && corepack prepare pnpm@10.33.2 --activate && \
     mkdir -p /etc/harness/pi-defaults && \
     chown -R harness:harness /usr/local/share/pnpm
 
-COPY .npmrc /etc/harness/.npmrc
-ENV NPM_CONFIG_GLOBALCONFIG=/etc/harness/.npmrc
+ENV PNPM_MINIMUM_RELEASE_AGE=10080
 
 COPY pi/models.json /etc/harness/pi-defaults/models.json
 
