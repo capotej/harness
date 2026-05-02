@@ -43,21 +43,30 @@ This project pins eight external dependencies across its Dockerfiles. Check each
 
 3. **Parse GitHub release output** — `gh release list` returns columns: Title / Type / Tag / Published. The tag is in column 3. Strip leading `v` for semver comparison. Skip tags containing `-rc`, `-alpha`, `-beta`, or `-pre` unless all releases are pre-releases.
 
-   **hermes-agent cooldown check**: hermes tags follow `vYYYY.M.DD` (e.g. `v2026.4.23` = April 23 2026). Parse the date from the tag and compute days since release:
+4. **7-day cooldown check (all dependencies)** — Every dependency must be at least 7 days old before recommending an upgrade. Apply this to **all** dependencies, not just hermes-agent:
 
-   ```bash
-   python3 -c "
-   from datetime import date
-   tag = 'v2026.4.23'
-   y,m,d = tag.lstrip('v').split('.')
-   release = date(int(y), int(m), int(d))
-   print((date.today() - release).days)
-   "
-   ```
+   - **npm packages** (`@mariozechner/pi-coding-agent`, `opencode-ai`, `pnpm`): Get the publish date with `npm show <package> time` or `npm show <package> --json` and parse the `modified` / `created` field. Compute days since release.
+
+   - **GitHub releases** (`gh`, `cosign`, `uv`, `hermes-agent`): Use the publish date from the API response (`published_at` field when using `curl -s https://api.github.com/repos/<owner>/<repo>/releases?per_page=5` or column 4 from `gh release list`). Compute days since release.
+
+   - **hermes-agent** tags follow `vYYYY.M.DD` (e.g. `v2026.4.23` = April 23 2026). Parse the date from the tag:
+     ```bash
+     python3 -c "
+     from datetime import date
+     tag = 'v2026.4.23'
+     y,m,d = tag.lstrip('v').split('.')
+     release = date(int(y), int(m), int(d))
+     print((date.today() - release).days)
+     "
+     ```
+
+   - **debian:stable-slim**: Base image digests are not subject to the cooldown — they rotate frequently with security patches. Report if different but don't block.
 
    If the latest release is **fewer than 7 days old**, mark it as `on cooldown 🕐` and do **not** recommend upgrading, even if it is newer than the pinned version.
 
-4. **Compare and report** — produce a clean table:
+   The only exception: if the user explicitly says to override the cooldown, skip this check for the specified dependency.
+
+5. **Compare and report** — produce a clean table:
 
 ```text
 | Dependency                    | Pinned       | Latest       | Status          |
@@ -72,7 +81,7 @@ This project pins eight external dependencies across its Dockerfiles. Check each
 | debian:stable-slim            | sha256:e51b… | sha256:e51b… | up to date      |
 ```
 
-1. **For each outdated dep, show the exact edit needed** — file path, the current line, and what it should change to. Be specific so the user can apply the update immediately or ask you to do it.
+6. **For each outdated dep, show the exact edit needed** — file path, the current line, and what it should change to. Be specific so the user can apply the update immediately or ask you to do it.
 
 ## Notes on specific deps
 

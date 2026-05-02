@@ -55,7 +55,7 @@ The image tag is selected at runtime based on `--agent`: pi uses `<version>`, ot
 - `entrypoint-opencode.sh` — detects `OPENROUTER_API_KEY` to switch between LM Studio and OpenRouter configs; sets `OPENCODE_MODEL` env var
 - `entrypoint-hermes.sh` — seeds hermes defaults from `/etc/harness/hermes-defaults/{local,openrouter}`; sets `HERMES_HOME` based on provider
 
-**Dependency cooldown:** pnpm uses `minimumReleaseAge=10080` (`.npmrc` at `/etc/harness/.npmrc`) via `NPM_CONFIG_GLOBALCONFIG`, rejecting npm packages published within the last 7 days. uv enforces the same cooldown via `--exclude-newer=$(date -u -d '7 days ago' '+%Y-%m-%dT%H:%M:%SZ')` passed directly to `uv pip install` in `Dockerfile.hermes`. hermes-agent is installed via `git clone` and therefore bypasses uv's cooldown; the `check-deps` skill enforces the 7-day window manually by parsing the release date from the `vYYYY.M.DD` tag format.
+**Dependency cooldown:** All dependencies must be at least 7 days old before upgrading. pnpm enforces this at build time via `PNPM_MINIMUM_RELEASE_AGE=10080`. uv enforces the same cooldown via `--exclude-newer=$(date -u -d '7 days ago' '+%Y-%m-%dT%H:%M:%SZ')` passed directly to `uv pip install` in `Dockerfile.hermes`. hermes-agent is installed via `git clone` and therefore bypasses uv's cooldown; the `check-deps` skill enforces the 7-day window manually by parsing the release date from the `vYYYY.M.DD` tag format. For other deps (gh, cosign, etc.), the `check-deps` skill checks the GitHub release publish date against the 7-day window.
 
 **Agent configs:** `pi/models.json`, `opencode/lmstudio.json`, `opencode/openrouter.json`, `hermes/local.yaml`, `hermes/openrouter.yaml` define provider/model settings copied into the container.
 

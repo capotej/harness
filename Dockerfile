@@ -47,6 +47,7 @@ RUN set -eux && \
     rm -rf gh*
 
 ENV PNPM_HOME=/usr/local/share/pnpm
+ENV PNPM_MINIMUM_RELEASE_AGE=10080
 ENV PATH=$PNPM_HOME:$PATH
 
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate && \
@@ -55,8 +56,6 @@ RUN corepack enable && corepack prepare pnpm@10.33.2 --activate && \
     rm -rf ~/.cache/pnpm ~/.npm && \
     mkdir -p /etc/harness/pi-defaults && \
     chown -R harness:harness /usr/local/share/pnpm
-
-ENV PNPM_MINIMUM_RELEASE_AGE=10080
 
 COPY pi/models.json /etc/harness/pi-defaults/models.json
 
