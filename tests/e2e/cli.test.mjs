@@ -835,3 +835,91 @@ test("--help documents --no-skills", () => {
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /--no-skills/);
 });
+
+// ---- --volumes / -v flag ---------------------------------------------------
+
+test("--help documents --volumes", () => {
+  const r = runCli(["--help"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /--volumes/);
+});
+
+test("--volumes with valid spec passes through as -v to docker", () => {
+  const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), "harness-vol-"));
+  const r = runCli(["-p", "noop", "--volumes", `${extraDir}:/mnt/data`]);
+  assert.equal(r.status, 0, r.stderr);
+  const a = dockerArgs(r.stdout);
+  assert.ok(a, "expected DOCKER_INVOKED line");
+  assert.ok(
+    a.includes(`${extraDir}:/mnt/data`),
+    `expected user volume mount in args: ${a.join(" ")}`,
+  );
+});
+
+test("--volumes with absolute host path resolves correctly", () => {
+  const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), "harness-vol-"));
+  const r = runCli(["-p", "noop", "--volumes", `${extraDir}:/opt/thing:ro`]);
+  assert.equal(r.status, 0, r.stderr);
+  const a = dockerArgs(r.stdout);
+  assert.ok(
+    a.includes(`${extraDir}:/opt/thing:ro`),
+    `expected volume with opts in args: ${a.join(" ")}`,
+  );
+});
+
+test("--volumes with non-existent host path fails", () => {
+  const r = runCli(["-p", "noop", "--volumes", "/nonexistent/path:/mnt/data"]);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /volume source path does not exist/);
+});
+
+test("--volumes with missing colon fails", () => {
+  const r = runCli(["-p", "noop", "--volumes", "nospec"]);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /invalid volume spec/);
+});
+
+test("--volumes with relative host path is resolved to absolute", () => {
+  const r = runCli(["-p", "noop", "--volumes", "relative:/mnt/data"]);
+  // The CLI resolves relative paths via path.resolve, so it should fail
+  // because "relative" doesn't exist in WORK_DIR.
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /volume source path does not exist/);
+});
+
+test("multiple --volumes flags all pass through", () => {
+  const dir1 = fs.mkdtempSync(path.join(os.tmpdir(), "harness-vol-"));
+  const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), "harness-vol-"));
+  const r = runCli([
+    "-p", "noop",
+    "--volumes", `${dir1}:/mnt/a`,
+    "--volumes", `${dir2}:/mnt/b`,
+  ]);
+  assert.equal(r.status, 0, r.stderr);
+  const a = dockerArgs(r.stdout);
+  assert.ok(
+    a.includes(`${dir1}:/mnt/a`),
+    `expected first volume in args: ${a.join(" ")}`,
+  );
+  assert.ok(
+    a.includes(`${dir2}:/mnt/b`),
+    `expected second volume in args: ${a.join(" ")}`,
+  );
+});
+
+test("--volumes does not break existing workspace mount", () => {
+  const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), "harness-vol-"));
+  const r = runCli(["-p", "noop", "--volumes", `${extraDir}:/mnt/data`]);
+  assert.equal(r.status, 0, r.stderr);
+  const a = dockerArgs(r.stdout);
+  // workspace mount must still be present
+  assert.ok(
+    a.includes(`${WORK_DIR}:/workspace`),
+    `expected workspace mount in args: ${a.join(" ")}`,
+  );
+  // user volume must also be present
+  assert.ok(
+    a.includes(`${extraDir}:/mnt/data`),
+    `expected user volume in args: ${a.join(" ")}`,
+  );
+});

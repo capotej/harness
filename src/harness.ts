@@ -23,6 +23,7 @@ interface Args extends ParsedArgs {
   m?: string;
   agent?: string;
   a?: string;
+  volumes?: string[];
 }
 
 interface AgentOptions {
@@ -317,6 +318,7 @@ Options:
   -f, --file <file>      Mount a single file into the container instead of the current directory
   -m, --model <model>    Override the model used by the agent
   -a, --agent <name>     Select the coding agent adapter: pi, opencode, hermes (default: pi)
+  --volumes <spec>       Additional volume mount (host:container[:opts]); may be repeated
   --no-verify            Skip cosign image signature and provenance verification
   --no-skills            Disable mounting user skills directories (~/.agents/skills, ~/.claude/skills)
   --ephemeral            Disable session persistence (implied by -p and piped stdin)
@@ -352,6 +354,7 @@ const argv = minimist<Args>(process.argv.slice(2), {
     "m",
     "agent",
     "a",
+    "volumes",
   ],
   alias: {
     e: "env-file",
@@ -401,6 +404,23 @@ if (fileArg && !fs.existsSync(fileArg)) {
 if (fileArg && fs.statSync(fileArg).isDirectory()) {
   console.error(`harness: --file requires a file, not a directory: ${fileArg}`);
   process.exit(1);
+}
+
+const volumeArgList: string[] = Array.isArray(argv.volumes)
+  ? argv.volumes
+  : argv.volumes
+    ? [argv.volumes]
+    : [];
+for (const spec of volumeArgList) {
+  const parts = spec.split(":");
+  if (parts.length < 2) {
+    console.error(`harness: invalid volume spec "${spec}" (expected host:container[:opts])`);
+    process.exit(1);
+  }
+  if (parts[0] && !fs.existsSync(parts[0])) {
+    console.error(`harness: volume source path does not exist: ${parts[0]}`);
+    process.exit(1);
+  }
 }
 
 async function run(prompt: string | null): Promise<void> {
@@ -464,6 +484,11 @@ async function run(prompt: string | null): Promise<void> {
     }
   }
 
+  const userVolumeArgs: string[] = [];
+  for (const spec of volumeArgList) {
+    userVolumeArgs.push("-v", path.resolve(spec.split(":")[0]) + ":" + spec.split(":").slice(1).join(":"));
+  }
+
   const args = [
     "run",
     "--rm",
@@ -475,6 +500,7 @@ async function run(prompt: string | null): Promise<void> {
     ...envFileArgs,
     ...adapterDockerArgs,
     ...volumeArgs,
+    ...userVolumeArgs,
     "-w",
     "/workspace",
     image,
