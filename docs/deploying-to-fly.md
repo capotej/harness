@@ -17,6 +17,9 @@ primary_region = "iad"
 
 [env]
   TZ = "America/New_York"
+  # Persist the faster-whisper model cache across restarts.
+  # Without this, the model re-downloads (~142 MB) on every deploy.
+  HF_HOME = "/home/harness/.hermes-openrouter/.cache/huggingface"
 
 [build]
   image = "ghcr.io/capotej/harness:hermes-1.6.0"

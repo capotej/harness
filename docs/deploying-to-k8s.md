@@ -110,6 +110,10 @@ spec:
               value: "America/New_York"
             - name: HERMES_HOME
               value: "/home/harness/.hermes-openrouter"
+            # Persist the faster-whisper model cache across restarts.
+            # Without this, the model re-downloads (~142 MB) on every pod restart.
+            - name: HF_HOME
+              value: "/home/harness/.hermes-openrouter/.cache/huggingface"
             #
             # add/modify any environment variables here
             #  https://hermes-agent.nousresearch.com/docs/reference/environment-variables

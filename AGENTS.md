@@ -39,7 +39,7 @@ The project uses a **multi-image architecture** with a shared base and agent-spe
 |-------|-----------|-------------|----------|
 | Base (pi) | `Dockerfile` | `<version>` | Debian stable-slim, Node.js v24, pnpm, `pi-coding-agent`, `gh`, `mise`, `tini`, `fd`, `ripgrep`, `jq` |
 | OpenCode | `Dockerfile.opencode` | `opencode-<version>` | Base + `opencode-ai` |
-| Hermes | `Dockerfile.hermes` | `hermes-<version>` | Base + `uv`, `cosign`, `tirith`, Python venv with `hermes-agent`, `python-telegram-bot`, `croniter` |
+| Hermes | `Dockerfile.hermes` | `hermes-<version>` | Base + `uv`, `cosign`, `tirith`, Python venv with `hermes-agent`, `python-telegram-bot`, `croniter`, `faster-whisper` |
 
 The image tag is selected at runtime based on `--agent`: pi uses `<version>`, others use `<agent>-<version>`.
 
