@@ -260,7 +260,7 @@ pnpm unlink --global @capotej/harness
 make image
 ```
 
-Builds `ghcr.io/capotej/harness` with Debian stable-slim, Node.js v24, [`@mariozechner/pi-coding-agent`](https://pi.dev/), [`opencode-ai`](https://opencode.ai), [`hermes-agent`](https://github.com/NousResearch/hermes-agent), `fd`, `ripgrep`, `jq`, and `curl`.
+Builds `ghcr.io/capotej/harness` with Debian stable-slim, Node.js v24, [`@mariozechner/pi-coding-agent`](https://pi.dev/), [`opencode-ai`](https://opencode.ai), [`hermes-agent`](https://github.com/NousResearch/hermes-agent), `fd`, `ripgrep`, `jq`, and `curl`. The hermes variant also includes [`faster-whisper`](https://github.com/SYSTRAN/faster-whisper) for local speech-to-text.
 
 The base image is pinned by manifest-list digest (the OCI image index, not a per-platform manifest) for reproducible multi-arch builds. To bump it:
 
