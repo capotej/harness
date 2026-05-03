@@ -220,6 +220,7 @@ Add `.harness/` to your `.gitignore`.
 | `--file`      | `-f`  | Mount a single file instead of the current directory |
 | `--model`     | `-m`  | Override the model used by the agent |
 | `--agent`     | `-a`  | Select agent: `pi`, `opencode`, `hermes` (default: `pi`) |
+| `--volumes`   | `-v`  | Additional volume mount (`host:container[:opts]`); may be repeated |
 | `--no-verify` |       | Skip cosign signature and provenance verification |
 | `--no-skills` |       | Disable mounting user skills directories (`~/.agents/skills`, `~/.claude/skills`) |
 | `--ephemeral` |       | Disable session persistence (implied by `-p` and piped stdin) |
