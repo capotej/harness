@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.6.1] - 2026-05-03
+
+### Summary
+Adds `--volumes` (`-v`) flag for mounting additional volumes into the container (e.g. `harness -v /path/to/data:/data -p "analyze the CSV"`). Adds [`faster-whisper`](https://github.com/SYSTRAN/faster-whisper) to the hermes image for local speech-to-text. Fixes the logo rendering on mobile Safari (dark mode) and removes a duplicate logo element. Adds `mise.toml` for system linter tooling.
+
+### Dependency Updates
+- added `faster-whisper` 1.2.1 to hermes image
+
+### Changes
+- 9950893 add -v/--volume to README
+- 2643dd4 feat: add --volumes flag for custom volume mounts (#43)
+- 45f2079 chore: add mise.toml for system linter tooling (#44)
+- dd0f663 feat: add faster-whisper to hermes image for local STT (#41)
+- dd208cb fix: remove picture element causing double logo render (#40)
+- 0c2748d fix: render logo-dark in dark mode on mobile Safari (#39)
+- 83e9097 smaller logo
+- 54ab0a0 update logo
+
 ## [1.6.0] - 2026-05-02
 
 ### Summary
