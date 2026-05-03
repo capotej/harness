@@ -891,9 +891,12 @@ test("multiple --volumes flags all pass through", () => {
   const dir1 = fs.mkdtempSync(path.join(os.tmpdir(), "harness-vol-"));
   const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), "harness-vol-"));
   const r = runCli([
-    "-p", "noop",
-    "--volumes", `${dir1}:/mnt/a`,
-    "--volumes", `${dir2}:/mnt/b`,
+    "-p",
+    "noop",
+    "--volumes",
+    `${dir1}:/mnt/a`,
+    "--volumes",
+    `${dir2}:/mnt/b`,
   ]);
   assert.equal(r.status, 0, r.stderr);
   const a = dockerArgs(r.stdout);

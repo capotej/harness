@@ -414,7 +414,9 @@ const volumeArgList: string[] = Array.isArray(argv.volumes)
 for (const spec of volumeArgList) {
   const parts = spec.split(":");
   if (parts.length < 2) {
-    console.error(`harness: invalid volume spec "${spec}" (expected host:container[:opts])`);
+    console.error(
+      `harness: invalid volume spec "${spec}" (expected host:container[:opts])`,
+    );
     process.exit(1);
   }
   if (parts[0] && !fs.existsSync(parts[0])) {
@@ -486,7 +488,10 @@ async function run(prompt: string | null): Promise<void> {
 
   const userVolumeArgs: string[] = [];
   for (const spec of volumeArgList) {
-    userVolumeArgs.push("-v", path.resolve(spec.split(":")[0]) + ":" + spec.split(":").slice(1).join(":"));
+    userVolumeArgs.push(
+      "-v",
+      `${path.resolve(spec.split(":")[0])}:${spec.split(":").slice(1).join(":")}`,
+    );
   }
 
   const args = [
