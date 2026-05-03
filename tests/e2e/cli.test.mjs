@@ -844,6 +844,18 @@ test("--help documents --volumes", () => {
   assert.match(r.stdout, /--volumes/);
 });
 
+test("-v short flag works same as --volumes", () => {
+  const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), "harness-vol-"));
+  const r = runCli(["-p", "noop", "-v", `${extraDir}:/mnt/data`]);
+  assert.equal(r.status, 0, r.stderr);
+  const a = dockerArgs(r.stdout);
+  assert.ok(a, "expected DOCKER_INVOKED line");
+  assert.ok(
+    a.includes(`${extraDir}:/mnt/data`),
+    `expected user volume mount in args: ${a.join(" ")}`,
+  );
+});
+
 test("--volumes with valid spec passes through as -v to docker", () => {
   const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), "harness-vol-"));
   const r = runCli(["-p", "noop", "--volumes", `${extraDir}:/mnt/data`]);

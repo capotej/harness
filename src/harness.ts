@@ -318,7 +318,7 @@ Options:
   -f, --file <file>      Mount a single file into the container instead of the current directory
   -m, --model <model>    Override the model used by the agent
   -a, --agent <name>     Select the coding agent adapter: pi, opencode, hermes (default: pi)
-  --volumes <spec>       Additional volume mount (host:container[:opts]); may be repeated
+  -v, --volumes <spec>   Additional volume mount (host:container[:opts]); may be repeated
   --no-verify            Skip cosign image signature and provenance verification
   --no-skills            Disable mounting user skills directories (~/.agents/skills, ~/.claude/skills)
   --ephemeral            Disable session persistence (implied by -p and piped stdin)
@@ -363,6 +363,7 @@ const argv = minimist<Args>(process.argv.slice(2), {
     m: "model",
     h: "help",
     a: "agent",
+    v: "volumes",
   },
 });
 
