@@ -280,7 +280,13 @@ pnpm lint:actions   # actionlint
 pnpm format         # auto-format with Biome
 ```
 
-`shellcheck`, `hadolint`, and `actionlint` are system binaries:
+`shellcheck`, `hadolint`, and `actionlint` are system binaries. Install with [mise](https://mise.jdx.dev/) (recommended):
+
+```bash
+mise install
+```
+
+Or install manually:
 
 ```bash
 brew install shellcheck hadolint actionlint

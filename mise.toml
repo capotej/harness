@@ -1,0 +1,4 @@
+[tools]
+"ubi:koalaman/shellcheck" = "v0.11.0"
+"ubi:hadolint/hadolint" = "v2.12.0"
+"ubi:rhysd/actionlint" = "v1.7.7"
