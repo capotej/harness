@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.2] - 2026-05-03
+
+### Summary
+Adds the [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) to the hermes image by installing `hermes-agent[mcp]` instead of `hermes-agent`, enabling the hermes agent to connect to MCP servers.
+
+### Changes
+- 915acc8 feat: add MCP SDK to hermes image (#46)
+
 ## [1.6.1] - 2026-05-03
 
 ### Summary
