@@ -188,7 +188,7 @@ Each run starts the container with:
 
 Running harness from your home directory is blocked by default, since that would mount all of `$HOME` into the container — exposing dotfiles, credentials, and SSH keys to the agent and giving it a noisy, unfocused workspace. If the resolved working directory equals your home, harness exits with an error. Pass `--mount-entire-home` to opt in for the rare case where mounting all of `$HOME` is genuinely intended. `--file` mode is unaffected (it mounts a single file, not the working directory).
 
-These hardening flags are docker-specific. Under `HARNESS_CONTAINER_RUNTIME=apple`, `--security-opt` is not applied (apple/container workloads are microVMs with their own guest kernel, so the seccomp profile's host-kernel role is subsumed by the VM boundary); capability restrictions remain. See [Container runtime](#container-runtime).
+These hardening flags are docker-specific. When running under Apple's `container` CLI (auto-detected on macOS 26 / Apple Silicon), `--security-opt` is not applied (apple/container workloads are microVMs with their own guest kernel, so the seccomp profile's host-kernel role is subsumed by the VM boundary); capability restrictions remain. See [Container runtime](#container-runtime).
 
 ### Image verification
 
@@ -247,27 +247,32 @@ If an old `.harness/` directory exists in your working directory, harness will e
 | Variable                    | Description |
 |-----------------------------|-------------|
 | `HARNESS_IMAGE_TAG`         | Override the Docker image tag (defaults to the package version). Setting this implies `--no-verify`. |
-| `HARNESS_CONTAINER_RUNTIME` | Container runtime to use: `docker` (default) or `apple` (Apple's [`container`](https://github.com/apple/container) CLI). |
+| `HARNESS_CONTAINER_RUNTIME` | Container runtime: `auto` (default — prefers Apple's `container` CLI if on PATH, falls back to `docker`) or `docker` (force docker). |
 | `XDG_DATA_HOME`             | Override the base directory for persistence data (defaults to `~/.local/share`). |
 | `XDG_CACHE_HOME`            | Override the base directory for the cosign cache (defaults to `~/.cache`). |
 
 #### Container runtime
 
-By default harness runs images with `docker`. On macOS 26 / Apple Silicon you can opt into Apple's native [`container`](https://github.com/apple/container) CLI (v1.0.0+) instead, which runs OCI images as lightweight Linux microVMs:
+By default harness auto-detects the container runtime: if Apple's native [`container`](https://github.com/apple/container) CLI (v1.0.0+) is on PATH, it is preferred (macOS 26 / Apple Silicon only); otherwise docker is used. No configuration is needed.
 
 ```bash
 brew install container     # install Apple's container CLI (v1.0.0+)
 container system start     # one-time: start the container system service
 container system kernel set --recommended --arch arm64   # one-time on Apple Silicon (required before first run)
-export HARNESS_CONTAINER_RUNTIME=apple
 harness -p "write me a fizzbuzz in Go"
 ```
 
 On arm64 Macs, `container system kernel set --recommended` is required — without it the first `harness` run fails with `default kernel not configured for architecture arm64`. See [apple/container](https://github.com/apple/container) for details.
 
-The value is **named, not boolean** (`apple` or `docker`, case-insensitive); any other value is a hard error. harness never auto-detects the runtime — you must opt in. Image verification (cosign + SLSA provenance) works identically under both runtimes; the verified-digest cache is keyed by digest, so a digest verified under one runtime is a cache hit under the other.
+To force docker even when `container` is available, set:
 
-**Security note.** Under `=apple`, harness does not apply the `--security-opt no-new-privileges` and `--security-opt seccomp=...` flags it uses under docker, because `apple/container` has no `--security-opt` option. This is not a security regression: each apple/container workload is a microVM with its own ephemeral guest kernel (Apple Virtualization framework), so the `block-af-alg.json` profile's host-kernel role — blocking `socket(AF_ALG)` — is subsumed by the VM boundary itself (hardware-assisted isolation, strictly stronger than a syscall filter). Capability restrictions (`--cap-drop=ALL --cap-add=NET_RAW`) **are** supported and stay on. Only `ro`/`readonly` is honored for volume options under the apple path (SELinux relabel flags like `:Z` are meaningless under macOS virtiofs).
+```bash
+export HARNESS_CONTAINER_RUNTIME=docker
+```
+
+Image verification (cosign + SLSA provenance) works identically under both runtimes; the verified-digest cache is keyed by digest, so a digest verified under one runtime is a cache hit under the other.
+
+**Security note.** When running under Apple's `container` CLI, harness does not apply the `--security-opt no-new-privileges` and `--security-opt seccomp=...` flags it uses under docker, because `apple/container` has no `--security-opt` option. This is not a security regression: each apple/container workload is a microVM with its own ephemeral guest kernel (Apple Virtualization framework), so the `block-af-alg.json` profile's host-kernel role — blocking `socket(AF_ALG)` — is subsumed by the VM boundary itself (hardware-assisted isolation, strictly stronger than a syscall filter). Capability restrictions (`--cap-drop=ALL --cap-add=NET_RAW`) **are** supported and stay on. Only `ro`/`readonly` is honored for volume options under the apple path (SELinux relabel flags like `:Z` are meaningless under macOS virtiofs).
 
 **Optional tuning — resource limits.** Apple's container CLI reads defaults from `~/.config/container/config.toml`. Create this file to control CPU and memory allocation for all containers (see [container-system-config.md](https://github.com/apple/container/blob/main/docs/container-system-config.md) for the full schema):
 
