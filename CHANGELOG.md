@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.9.10] - 2026-08-10
+
+### Summary
+
+Adds local text-to-speech via `kokoro-onnx` in the hermes image, and lands integration tests that gate the release pipeline with real end-to-end container smoke tests. Bumps `gh` to 2.97.0 and `hermes-agent` to v2026.8.3 (v0.20.0, The Herald Release). Drops the slack-invalid-blocks patch that was upstreamed in v0.20.0.
+
+### Dependency Updates
+
+- updated gh from 2.96.0 to 2.97.0
+- updated hermes-agent from v2026.7.20 to v2026.8.3
+
+### Upstream Release Notes
+
+#### hermes-agent v2026.7.20 → v2026.8.3
+
+**v2026.7.30 (v0.19.1)** — Patch tag rolling up ~1,000 PRs since v0.19.0: bug-fix and salvage waves across the gateway, voice subsystem, desktop app, and installer; Buzz/Nostr channel, FLUX3 video, Telegram media reliability, voice-mode regressions.
+
+**v2026.8.3 (v0.20.0 — The Herald Release)** — Streaming conversational voice with barge-in and on-device wake words across all platforms. Agent-to-Agent protocol (A2A v1.0). Signed outbound webhooks. Grounded research with verifiable citations. Desktop app becomes a platform (artifacts, plugin SDK, quick-entry). CLI power-user wave (`!` shell mode, `/init`, `/diff`, `/context`, `/focus`). Mid-turn redirects. Tool self-recovery wave. Smarter, gentler context compression. Prompt caching covers tool schemas on Anthropic. `hermes -w` cold start 14s → 1.8s. Default tool-call iteration limit 90 → 500. New providers: Gemini 3.1 Pro, Gemini 3.6 Flash, claude-opus-5, deepseek-v4-flash-0731. New platforms: Buzz (Nostr), Vercel AI Gateway. Slack Block Kit clarify buttons, reaction triggers, outbound payload sanitization.
+
+### Changes
+
+- 75e2877 deps: bump gh 2.96.0→2.97.0, hermes-agent v2026.7.20→v2026.8.3 (#165)
+- 9205780 feat: add kokoro-onnx to hermes image for local TTS (#162)
+- 1c94dd9 fix: pre-create combined.txt so hermes preserves world-readable mode (#159)
+- c6daff7 fix: capture agent exit code before chmod in run_harness (#158)
+- 01329d6 fix: chmod workspace after agent run so assertions can read created files (#157)
+- 953c93b fix: restore per-adapter model selection, tighten multi_file prompt (#156)
+- 94eb9c5 fix: use bare model ID for all adapters in smoke tests (#155)
+- 8104189 fix: remove connectivity scenario, use per-adapter model in smoke tests (#154)
+- ab4f640 fix: make temp workspaces writable by the container user (#153)
+- 1f2e5e6 feat: expand smoke tests with file read/write scenarios (#152)
+- 9aceb54 fix: use concrete OpenRouter model for opencode smoke test (#151)
+- cc539b0 fix: integration test failures — macOS leg, model names, release gate (#150)
+- d202495 feat: integration tests that gate the release pipeline (#149)
+- 38b671d RFC: Integration Tests — Real End-to-End Container Tests (#138)
+
 ## [1.9.9] - 2026-08-01
 
 ### Summary
