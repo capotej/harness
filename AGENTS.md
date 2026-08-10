@@ -66,7 +66,7 @@ Skills mounting applies to all run modes (interactive, one-shot, `--file`). Non-
 
 - `entrypoint.sh` (pi) — seeds pi defaults from `/etc/harness/pi-defaults`; disables pi self-update checks
 - `entrypoint-opencode.sh` — without `HARNESS_CLOUD_MODE`, sets LM Studio config and default model; with `HARNESS_CLOUD_MODE`, does nothing (agent auto-detects from env vars)
-- `entrypoint-hermes.sh` — minimal entrypoint (hermes self-seeds on first run)
+- `entrypoint-hermes.sh` — minimal entrypoint (hermes self-seeds on first run); on first run also runs `hermes skills tap add boldblackai/skills` so the public skills marketplace is discoverable via `hermes skills search` / `install` (#163)
 
 **Cloud/local mode:** When `-e` is passed without `--local`, harness injects `HARNESS_CLOUD_MODE=1` into the container, signaling entrypoints to skip local defaults and let agents auto-detect providers from whatever API keys are in the env file. Without `-e` (or with `-e --local`), entrypoints use local mode (LM Studio, local configs). This is agent-agnostic — any provider key in the env file works without hardcoding specific variable names. For hermes cloud mode with multiple provider keys in the env file, set `HERMES_PROVIDER` (e.g. `zai`, `openrouter`) in the env file to pin the provider instead of relying on auto-detect (#132).
 
