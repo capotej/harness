@@ -150,8 +150,15 @@ class AppleContainerRuntime implements ContainerRuntime {
   }
 
   pullArgs(image: string): string[] {
-    // apple/container nests pull under the `image` subgroup.
-    return ["image", "pull", image];
+    // apple/container nests pull under the `image` subgroup. Pass
+    // --platform so the correct arch variant is pulled: without it (and
+    // without CONTAINER_DEFAULT_PLATFORM), `image pull` resolves the
+    // platform to nil and selects the first entry in the manifest list
+    // (linux/amd64), pulling the wrong arch on Apple Silicon. `container
+    // run` defaults to the host arch via its own path, so the image was
+    // being pulled twice — once wrong, once right.
+    const arch = process.arch === "arm64" ? "arm64" : "amd64";
+    return ["image", "pull", "--platform", `linux/${arch}`, image];
   }
 
   inspectImage(image: string): LocalImage {

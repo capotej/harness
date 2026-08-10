@@ -418,6 +418,87 @@ test("apple runtime: seeded cosign cache short-circuits verification (no pull, n
   }
 });
 
+// ---- apple runtime pull includes --platform --------------------------------
+//
+// When verification requires a pull (no cached digest), the apple runtime
+// must pass --platform so the correct arch variant is fetched. Without it,
+// apple/container resolves the platform to nil and picks the first manifest
+// list entry (linux/amd64), pulling the wrong arch on Apple Silicon.
+
+test("apple runtime: verification pull includes --platform linux/<host-arch>", () => {
+  // Stateful shim: `image inspect` returns no digest on the first call
+  // (before pull), forcing the pull path; the pull call captures its argv
+  // to a temp file; the second `image inspect` (after pull) returns a
+  // digest so the code proceeds past the pull block.
+  const shimDir = fs.mkdtempSync(path.join(os.tmpdir(), "harness-rt-pull-"));
+  const pullLog = path.join(shimDir, "pull-args.txt");
+  const VERSION = JSON.parse(
+    fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf8"),
+  ).version;
+  const image = `ghcr.io/boldblackai/harness:${VERSION}`;
+  fs.mkdirSync(shimDir, { recursive: true });
+  const shim = path.join(shimDir, "container");
+  fs.writeFileSync(
+    shim,
+    `#!/usr/bin/env bash
+if [ "$1" = "--version" ]; then exit 0; fi
+if [ "$1" = "image" ] && [ "$2" = "inspect" ]; then
+  count=$(cat "${pullLog}.count" 2>/dev/null || echo 0)
+  count=$((count + 1))
+  echo "$count" > "${pullLog}.count"
+  if [ "$count" -eq 1 ]; then
+    # First inspect (before pull): exit non-zero → exists:false → triggers pull
+    exit 1
+  fi
+  # Second inspect (after pull): return a digest
+  printf '%s' '[{"configuration":{"descriptor":{"digest":"sha256:${SHARED_DIGEST}"}}}]'
+  exit 0
+fi
+if [ "$1" = "image" ] && [ "$2" = "pull" ]; then
+  printf '%s\\n' "$@" > "${pullLog}"
+  exit 0
+fi
+echo "CONTAINER_INVOKED $*"
+exit 0
+`,
+    { mode: 0o755 },
+  );
+  try {
+    const r = spawnSync("node", [CLI, "-p", "noop"], {
+      cwd: WORK_DIR,
+      env: {
+        ...process.env,
+        PATH: `${shimDir}:${process.env.PATH}`,
+        // NO HARNESS_IMAGE_TAG — we want the real verify path to reach pull
+        HARNESS_CONTAINER_RUNTIME: "apple",
+        XDG_CACHE_HOME: fs.mkdtempSync(
+          path.join(os.tmpdir(), "harness-rt-pull-cache-"),
+        ),
+      },
+      encoding: "utf8",
+    });
+    // cosign will fail (no real signing), but we only care about the pull argv
+    assert.ok(fs.existsSync(pullLog), "image pull must have been invoked");
+    const pullArgv = fs.readFileSync(pullLog, "utf8").trim();
+    const pullTokens = pullArgv.split(/\s+/);
+    assert.ok(
+      pullTokens.includes("--platform"),
+      `pull must include --platform: ${pullArgv}`,
+    );
+    const expectedArch = process.arch === "arm64" ? "arm64" : "amd64";
+    assert.ok(
+      pullTokens.includes(`linux/${expectedArch}`),
+      `pull platform must match host arch (${expectedArch}): ${pullArgv}`,
+    );
+    assert.ok(
+      pullTokens.includes(image),
+      `pull must include the image ref: ${pullArgv}`,
+    );
+  } finally {
+    fs.rmSync(shimDir, { recursive: true, force: true });
+  }
+});
+
 test("cosign cache is runtime-agnostic: same digest entry is a hit under docker too", () => {
   // The complement of the apple cache test: the identical seeded cache entry
   // (same repo@sha256:<d> key) must also short-circuit verification under the
