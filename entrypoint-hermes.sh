@@ -20,6 +20,8 @@ if [ ! -f "$CONFIG" ]; then
 		cp /etc/harness/hermes-local.yaml "$CONFIG"
 	fi
 	# Cloud mode first run: hermes self-seeds from env vars
+	# Default skills marketplace (#163) — idempotent; public repo, no credentials
+	hermes skills tap add boldblackai/skills >/dev/null 2>&1 || true
 else
 	# Config exists — reconcile with current harness mode
 	if [ -z "$HARNESS_CLOUD_MODE" ]; then
