@@ -56,6 +56,10 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      # Job-level so the webhook step's `if` can test it (the secrets context
+      # is not available in step-level conditionals).
+      AMPLIFY_DOCS_WEBHOOK_URL: ${{ secrets.AMPLIFY_DOCS_WEBHOOK_URL }}
     steps:
       - uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
         id: deployment
@@ -66,9 +70,7 @@ jobs:
       # AMPLIFY_DOCS_WEBHOOK_URL secret the step is skipped and only the
       # Pages site updates.
       - name: Trigger Amplify rebuild of harness.boldblack.ai
-        if: ${{ secrets.AMPLIFY_DOCS_WEBHOOK_URL != '' }}
-        env:
-          AMPLIFY_DOCS_WEBHOOK_URL: ${{ secrets.AMPLIFY_DOCS_WEBHOOK_URL }}
+        if: env.AMPLIFY_DOCS_WEBHOOK_URL != ''
         run: |
           curl -sS -X POST --max-time 30 \
             -H "Content-Type: application/json" \
