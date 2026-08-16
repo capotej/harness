@@ -59,3 +59,19 @@ jobs:
     steps:
       - uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
         id: deployment
+      # The marketing site (harness.boldblack.ai, AWS Amplify) mirrors the
+      # published Pages tree into its build (harness-site repo,
+      # scripts/fetch-docs.py) to serve the docs at /docs/. Ping the Amplify
+      # webhook so that rebuild picks up this deploy. Optional: without the
+      # AMPLIFY_DOCS_WEBHOOK_URL secret the step is skipped and only the
+      # Pages site updates.
+      - name: Trigger Amplify rebuild of harness.boldblack.ai
+        if: ${{ secrets.AMPLIFY_DOCS_WEBHOOK_URL != '' }}
+        env:
+          AMPLIFY_DOCS_WEBHOOK_URL: ${{ secrets.AMPLIFY_DOCS_WEBHOOK_URL }}
+        run: |
+          curl -sS -X POST --max-time 30 \
+            -H "Content-Type: application/json" \
+            -d '{"referrer":"harness-docs-deploy","source":"github-actions"}' \
+            -o /dev/null -w "amplify webhook HTTP %{http_code}\n" \
+            "$AMPLIFY_DOCS_WEBHOOK_URL"

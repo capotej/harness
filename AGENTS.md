@@ -4,7 +4,7 @@
 
 **Harness** is a portable containerized environment for running coding agents. See README.md for more project details.
 
-**Documentation website:** Built with [Zensical](https://zensical.org) from `docs/`. Config in `zensical.toml`. Deploys to GitHub Pages via `.github/workflows/docs.yml`, which also runs a build-only check on PRs that touch `docs/`, `zensical.toml`, or the workflow itself (so doc build failures are caught before merge). Build locally with `pip install zensical && zensical build --clean` (CI uses `uv tool install zensical==0.0.43`).
+**Documentation website:** Built with [Zensical](https://zensical.org) from `docs/`. Config in `zensical.toml`. Deploys to GitHub Pages via `.github/workflows/docs.yml`, which also runs a build-only check on PRs that touch `docs/`, `zensical.toml`, or the workflow itself (so doc build failures are caught before merge). Build locally with `pip install zensical && zensical build --clean` (CI uses `uv tool install zensical==0.0.43`). Canonical URL is `https://harness.boldblack.ai/docs/` (`site_url` in `zensical.toml`): the marketing site (boldblackai/harness-site, AWS Amplify) mirrors the published Pages tree into its build via `scripts/fetch-docs.py` and serves it at `/docs/`; the Pages deploy optionally pings an Amplify rebuild webhook (`AMPLIFY_DOCS_WEBHOOK_URL` secret). Zensical emits relative links, so the tree is relocatable — keep it that way (no absolute-internal-link builds).
 
 ## Commands
 
