@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.9.11] - 2026-08-16
+
+### Summary
+
+Fixes the Apple Container runtime pulling the wrong architecture on Apple Silicon (it now passes `--platform` to `image pull`), honors `HERMES_PROVIDER` in cloud-mode entrypoint so multi-key env files can pin the provider, and adds `boldblackai/skills` as a default tap on first run so fresh containers can discover the public skills marketplace without a manual step. The release skill also now opens a cross-repo PR to bump the image tag in `create-dispatch`.
+
+### Changes
+
+- cebc5a6 feat: bump create-bclaw image tag in release skill (#161)
+- 807f449 feat(hermes): add boldblackai/skills as default tap on first run (#163) (#168)
+- 060d4a5 fix(hermes): honor HERMES_PROVIDER in cloud mode entrypoint (#132) (#167)
+- 41a3b8b fix: pass --platform to apple/container image pull (#169)
+
 ## [1.9.10] - 2026-08-10
 
 ### Summary
