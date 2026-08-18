@@ -30,9 +30,9 @@ else
 		hermes config set model.base_url "http://host.docker.internal:1234/v1" >/dev/null 2>&1
 		hermes config set model.default "${HERMES_MODEL:-gemma-4-e4b}" >/dev/null 2>&1
 	else
-		# Cloud mode: honor HERMES_PROVIDER when set; else hermes auto-detects (#132)
+		# Cloud mode: honor HERMES_PROVIDER/HERMES_BASE_URL when set; else hermes auto-detects (#132)
 		hermes config set model.provider "${HERMES_PROVIDER:-}" >/dev/null 2>&1
-		hermes config set model.base_url "" >/dev/null 2>&1
+		hermes config set model.base_url "${HERMES_BASE_URL:-}" >/dev/null 2>&1
 	fi
 fi
 
