@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.12] - 2026-08-18
+
+### Summary
+
+Honors `HERMES_BASE_URL` in the cloud-mode entrypoint, mirroring the existing `HERMES_PROVIDER` handling. When set, the hermes container's `model.base_url` config is populated from the environment instead of being cleared.
+
+### Changes
+
+- ccf2c77 feat(hermes): honor HERMES_BASE_URL in cloud mode entrypoint (#173)
+
 ## [1.9.11] - 2026-08-16
 
 ### Summary
