@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.9.13] - 2026-08-30
+
+### Summary
+
+Dependency refresh: bumps `hermes-agent` to v2026.8.19 (v0.20.5), `gh` to 2.98.0, and `cosign` to 3.1.3 (with updated release checksums). Drops the `hermes-agent-64189` secret-source re-pull backport patch — the fix is now upstream (hermes-agent #64177) — and removes the now-empty `patches/` directory along with the dead `MISE_VERSION` build-arg.
+
+### Dependency Updates
+
+- updated gh from 2.97.0 to 2.98.0
+- updated cosign from 3.1.2 to 3.1.3
+- updated hermes-agent from v2026.8.3 to v2026.8.19
+
+### Upstream Release Notes
+
+#### hermes-agent v2026.8.3 → v2026.8.19
+
+**v2026.8.13 (v0.20.1)** — Patch rollup of ~656 PRs since v0.20.0 (1,444 commits, ~481 issues closed): stabilization and fix waves across the desktop app, gateway platforms, installers, tool system, and provider catalogs.
+
+**v2026.8.16 (v0.20.2)** — Patch rollup of ~397 PRs since v0.20.1: desktop multi-gateway Connections registry, profile-scoped refreshes, and MCP health checks; CLI Windows update probes and Kitty keyboard protocol; persisted model routes and Telegram DM topics on the gateway; prompt caching for LiteLLM Claude; cron and auth-resolution hardening; installer robustness on Linux and Windows.
+
+**v2026.8.16.2 (v0.20.3)** — Patch rollup of ~125 PRs since v0.20.2: MCP 2.x SDK migration with 2026-07-28 stateless protocol support; bundled Bot Mode plugin with the core teammate protocol; CommandCode provider plugin; Python subprocess runtime isolation hardening; Cua Driver 0.20 contracts; kanban worktree/dispatch fixes; cron scheduler self-heal (EMFILE recovery, stale-claim reconciliation); session handoff data-loss fixes; plugin install security scanning.
+
+**v2026.8.18 (v0.20.4)** — Patch rollup of ~74 PRs since v0.20.3: desktop glass/translucency work and tabbed SESSIONS|BOTS sidebar; Bot Mode group-chat fixes; NVIDIA SkillEvaluator advisory scanning on skill installs; cron media-send hardening; SessionDB event-loop and contention fixes; `hermes update` parked-branch honesty; kanban native OS notifications.
+
+**v2026.8.19 (v0.20.5)** — Patch rollup of ~323 PRs since v0.20.4: Bot Mode group-room threads, foldable conversation summaries, and PDF/file attachments with drag & drop; keyless web tier (free vendor rotation with ring failover, web search with zero keys); CLI fuzzy `/model` picker and Ctrl+P command palette; execution-discipline and runtime stall guards; `hermes update` receipts and fleet `--plan` verification; `hermes worktree list/prune`; multi-question clarify; cron persistent memory and per-job reasoning effort.
+
+### Changes
+
+- 1fca58c deps: bump gh 2.97.0→2.98.0, cosign 3.1.2→3.1.3, hermes-agent v2026.8.3→v2026.8.19 (#176)
+
 ## [1.9.12] - 2026-08-18
 
 ### Summary
