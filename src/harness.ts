@@ -33,6 +33,7 @@ interface Args extends ParsedArgs {
   agent?: string;
   a?: string;
   volumes?: string[];
+  port?: string[];
 }
 
 interface AgentOptions {
@@ -58,6 +59,7 @@ interface RunInput {
   envArgs: string[]; // cloud-mode, adapter, mise envs
   volumeArgs: string[];
   userVolumeArgs: string[];
+  portArgs: string[]; // --port publish flags (-p <spec>), runtime-agnostic
   workdir: string;
   image: string;
   containerCmd: string[];
@@ -131,6 +133,7 @@ class DockerRuntime implements ContainerRuntime {
       ...input.envArgs,
       ...input.volumeArgs,
       ...input.userVolumeArgs,
+      ...input.portArgs,
       "-w",
       input.workdir,
       input.image,
@@ -211,6 +214,7 @@ class AppleContainerRuntime implements ContainerRuntime {
       ...input.envArgs,
       ...input.volumeArgs,
       ...input.userVolumeArgs,
+      ...input.portArgs,
       "-w",
       input.workdir,
       input.image,
@@ -519,6 +523,7 @@ Options:
   -m, --model <model>    Override the model used by the agent
   -a, --agent <name>     Select the coding agent adapter: pi, opencode, hermes (default: pi)
   -v, --volumes <spec>   Additional volume mount (host:container[:opts]); may be repeated
+  --port <spec>          Publish a container port to the host ([host-ip:]host-port:container-port[/protocol]); may be repeated
   --no-verify            Skip cosign image signature and provenance verification
   --no-skills            Disable mounting user skills directories (~/.agents/skills, ~/.claude/skills)
   --no-context-files     Disable mounting global context files (~/.agents/AGENTS.md, ~/.claude/CLAUDE.md); alias -nc
@@ -583,6 +588,7 @@ const MINIMIST_OPTS = {
     "agent",
     "a",
     "volumes",
+    "port",
   ],
   alias: {
     e: "env-file",
@@ -697,6 +703,39 @@ for (const spec of volumeArgList) {
   }
   if (parts[0] && !fs.existsSync(parts[0])) {
     console.error(`harness: volume source path does not exist: ${parts[0]}`);
+    process.exit(1);
+  }
+}
+
+// Publish specs use the shared docker/apple-container syntax
+// [host-ip:]host-port:container-port[/protocol]. Validate up front so a
+// typo fails fast with a clear message instead of an opaque runtime error
+// after image verification/pulling.
+const PORT_SPEC_REGEXP =
+  /^(?:(?:\d{1,3}(?:\.\d{1,3}){3}|\[[0-9a-fA-F:.]+\]):)?(\d{1,5}):(\d{1,5})(?:\/(tcp|udp|sctp))?$/;
+
+function isValidPortSpec(spec: string): boolean {
+  const match = spec.match(PORT_SPEC_REGEXP);
+  if (!match) {
+    return false;
+  }
+  const portInRange = (p: string) => {
+    const n = Number.parseInt(p, 10);
+    return n >= 1 && n <= 65535;
+  };
+  return portInRange(match[1]) && portInRange(match[2]);
+}
+
+const portArgList: string[] = Array.isArray(argv.port)
+  ? argv.port
+  : argv.port
+    ? [argv.port]
+    : [];
+for (const spec of portArgList) {
+  if (!isValidPortSpec(spec)) {
+    console.error(
+      `harness: invalid port spec "${spec}" (expected [host-ip:]host-port:container-port[/protocol], e.g. 8080:3000)`,
+    );
     process.exit(1);
   }
 }
@@ -829,12 +868,20 @@ async function run(prompt: string | null): Promise<void> {
     );
   }
 
+  // docker -p and apple/container --publish share the spec syntax, so the
+  // flags are runtime-agnostic (unlike caps/tty handling).
+  const portArgs: string[] = [];
+  for (const spec of portArgList) {
+    portArgs.push("-p", spec);
+  }
+
   const args = runtime.runArgs({
     interactive,
     envFileArgs,
     envArgs: [...cloudModeEnv, ...adapterDockerArgs],
     volumeArgs,
     userVolumeArgs,
+    portArgs,
     workdir: "/workspace",
     image,
     containerCmd,

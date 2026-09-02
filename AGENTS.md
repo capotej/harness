@@ -94,6 +94,7 @@ E2E tests in `tests/e2e/*.test.mjs` (with shared helpers in `helpers.mjs`) use a
 - Adapter behavior (pi, opencode, hermes command construction)
 - Image tag selection per agent
 - Security flags (`--cap-drop=ALL`, `--security-opt`, etc.)
+- Port publishing (`--port`, docker `-p` spec syntax, forwarded identically under both runtimes)
 - Persistence vs ephemeral behavior (TTY detection, `--ephemeral`, `-p`)
 - Volume mount construction (file vs directory, adapter-specific mount points, npm persistence)
 - `--env-file` forwarding across all adapters
