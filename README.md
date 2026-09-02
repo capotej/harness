@@ -25,7 +25,7 @@ and [`hermes`](https://github.com/NousResearch/hermes-agent) — so you can poin
 
 ## Quickstart
 
-A container runtime is required. By default harness uses [Docker](https://www.docker.com); on macOS 26 / Apple Silicon you can also use Apple's native [`container`](https://github.com/apple/container) CLI — see [Container runtime](#container-runtime). With the default runtime and LM Studio locally:
+A container runtime is required. By default harness uses [Docker](https://www.docker.com); on macOS 26 / Apple Silicon, Apple's native [`container`](https://github.com/apple/container) CLI is preferred automatically if installed — see [Container runtime](#container-runtime). With the default runtime and LM Studio locally:
 
 ```bash
 lms daemon up
@@ -248,13 +248,13 @@ If an old `.harness/` directory exists in your working directory, harness will e
 | Variable                    | Description |
 |-----------------------------|-------------|
 | `HARNESS_IMAGE_TAG`         | Override the Docker image tag (defaults to the package version). Setting this implies `--no-verify`. |
-| `HARNESS_CONTAINER_RUNTIME` | Container runtime: `auto` (default — prefers Apple's `container` CLI if on PATH, falls back to `docker`) or `docker` (force docker). |
+| `HARNESS_CONTAINER_RUNTIME` | Container runtime: `auto` (default — on macOS, prefers Apple's `container` CLI if on PATH; docker everywhere else), `docker` (force docker), or `apple` (deprecated explicit alias; warns). |
 | `XDG_DATA_HOME`             | Override the base directory for persistence data (defaults to `~/.local/share`). |
 | `XDG_CACHE_HOME`            | Override the base directory for the cosign cache (defaults to `~/.cache`). |
 
 #### Container runtime
 
-By default harness auto-detects the container runtime: if Apple's native [`container`](https://github.com/apple/container) CLI (v1.0.0+) is on PATH, it is preferred (macOS 26 / Apple Silicon only); otherwise docker is used. No configuration is needed.
+By default harness auto-detects the container runtime: on macOS, if Apple's native [`container`](https://github.com/apple/container) CLI (v1.0.0+) is on PATH, it is preferred; on every other platform docker is used. Auto-detection is gated to macOS because apple/container ships for macOS only — a binary named `container` on a Linux PATH is an unrelated tool and is ignored. No configuration is needed.
 
 ```bash
 brew install container     # install Apple's container CLI (v1.0.0+)
@@ -270,6 +270,8 @@ To force docker even when `container` is available, set:
 ```bash
 export HARNESS_CONTAINER_RUNTIME=docker
 ```
+
+`HARNESS_CONTAINER_RUNTIME=apple` (the pre-auto-detect opt-in) still works but is deprecated: it selects the apple runtime explicitly, prints a one-time deprecation warning, and will be removed in a future release.
 
 Image verification (cosign + SLSA provenance) works identically under both runtimes; the verified-digest cache is keyed by digest, so a digest verified under one runtime is a cache hit under the other.
 
