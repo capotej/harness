@@ -361,9 +361,7 @@ class HermesAdapter implements AgentAdapter {
   }
 
   contextDir(): string {
-    // Hermes reads AGENTS.md / CLAUDE.md from the project cwd only, not
-    // ~/.hermes/. Mount global context files into /workspace so they apply.
-    return "/workspace";
+    return "/home/harness/.hermes";
   }
 }
 
