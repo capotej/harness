@@ -270,7 +270,7 @@ To force docker even when `container` is available, set:
 export HARNESS_CONTAINER_RUNTIME=docker
 ```
 
-`HARNESS_CONTAINER_RUNTIME=apple` (the pre-auto-detect opt-in) still works but is deprecated: it selects the apple runtime explicitly, prints a one-time deprecation warning, and will be removed in a future release.
+`HARNESS_CONTAINER_RUNTIME=apple` (the pre-auto-detect opt-in) still works but is deprecated: it selects the apple runtime explicitly, prints a deprecation warning, and will be removed in a future release.
 
 Image verification (cosign + SLSA provenance) works identically under both runtimes; the verified-digest cache is keyed by digest, so a digest verified under one runtime is a cache hit under the other.
 

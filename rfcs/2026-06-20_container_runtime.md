@@ -506,7 +506,7 @@ system start`), the microVM rationale for dropping `--security-opt`, and the
 entry under Key subsystems, and the architecture overview's spawn step now
 reads `<runtime> run`.
 
-## Amendment: auto-detection supersedes explicit opt-in (2026-09-02, PR #114)
+## Amendment: auto-detection supersedes explicit opt-in (2026-09-02, drafted in #114, landed as #179)
 
 The "named value, explicit opt-in, never auto-detect" design above has been
 superseded: harness now auto-detects the runtime by default. The original

@@ -285,25 +285,30 @@ function selectRuntime(): ContainerRuntime {
     );
     process.exit(1);
   }
-  // Auto-detect: prefer Apple's container CLI when on PATH — but only on
-  // macOS. apple/container ships for macOS only, so on any other platform a
-  // binary named `container` is an unrelated tool and docker stays default.
-  if (process.platform === "darwin" && whichSync("container")) {
+  // Auto-detect: prefer Apple's container CLI when it actually executes —
+  // but only on macOS. apple/container ships for macOS only, so on any other
+  // platform a binary named `container` is an unrelated tool and docker stays
+  // default. Probing `--version` (not just a PATH lookup) proves the binary
+  // runs at all; broken installs, quarantine attributes, and wrong-arch
+  // builds all fail here, and execution is what selection depends on.
+  if (process.platform === "darwin" && appleContainerAvailable()) {
     return new AppleContainerRuntime();
   }
   return new DockerRuntime();
 }
 
-/** Synchronous `which` — returns true if the binary is found on PATH. */
-function whichSync(name: string): boolean {
+/**
+ * Whether Apple's `container` CLI exists and executes. Reuses the same
+ * `--version` probe `AppleContainerRuntime.ensureReady()` runs, which is
+ * strictly stronger evidence than a PATH lookup.
+ */
+function appleContainerAvailable(): boolean {
   try {
-    const isWindows = process.platform === "win32";
-    const out = execFileSync(isWindows ? "where" : "which", [name], {
-      stdio: ["ignore", "pipe", "ignore"],
-      timeout: 2000,
-      encoding: "utf8",
-    }).trim();
-    return out.length > 0;
+    execFileSync("container", ["--version"], {
+      stdio: "ignore",
+      timeout: 5000,
+    });
+    return true;
   } catch {
     return false;
   }

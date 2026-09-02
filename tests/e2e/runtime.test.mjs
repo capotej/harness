@@ -69,12 +69,25 @@ test("auto-detect: when only docker is on PATH, docker is used", () => {
     path.join(os.tmpdir(), "harness-dockeronly-"),
   );
   makeDockerShim(dockerOnlyDir);
+  // Build a PATH that contains docker but NOT `container`: on a macOS dev
+  // machine the real container CLI may be installed, and auto-detect would
+  // legitimately select it — filtering container-containing dirs out is what
+  // makes the "only docker" premise true.
+  const pathWithoutContainer = process.env.PATH.split(path.delimiter)
+    .filter((dir) => {
+      try {
+        return !fs.existsSync(path.join(dir, "container"));
+      } catch {
+        return true;
+      }
+    })
+    .join(path.delimiter);
   try {
     const r = spawnSync("node", [CLI, "-p", "noop"], {
       cwd: WORK_DIR,
       env: {
         ...process.env,
-        PATH: `${dockerOnlyDir}:${process.env.PATH}`,
+        PATH: `${dockerOnlyDir}:${pathWithoutContainer}`,
         HARNESS_IMAGE_TAG: "test-tag",
       },
       encoding: "utf8",
