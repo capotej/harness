@@ -247,12 +247,9 @@ class AppleContainerRuntime implements ContainerRuntime {
   }
 
   ensureReady(): void {
-    try {
-      execFileSync("container", ["--version"], {
-        stdio: ["ignore", "ignore", "ignore"],
-        timeout: 5000,
-      });
-    } catch {
+    // selectRuntime() already probed `container --version` (memoized); a false
+    // here means the probe failed there too — same evidence, one exec.
+    if (!appleContainerAvailable()) {
       console.error(
         "harness: the `container` CLI failed its version probe (Apple container, v1.0.0+). Install from https://github.com/apple/container/releases and run `container system start`, or set HARNESS_CONTAINER_RUNTIME=docker to use docker instead.",
       );
@@ -300,18 +297,26 @@ function selectRuntime(): ContainerRuntime {
 /**
  * Whether Apple's `container` CLI exists and executes. Reuses the same
  * `--version` probe `AppleContainerRuntime.ensureReady()` runs, which is
- * strictly stronger evidence than a PATH lookup.
+ * strictly stronger evidence than a PATH lookup. The result is memoized for
+ * the process lifetime so `selectRuntime()` and `ensureReady()` share one
+ * probe instead of running it twice; it is never persisted across runs, since
+ * the CLI's install state can change between invocations.
  */
+let appleContainerAvailableMemo: boolean | null = null;
+
 function appleContainerAvailable(): boolean {
-  try {
-    execFileSync("container", ["--version"], {
-      stdio: "ignore",
-      timeout: 5000,
-    });
-    return true;
-  } catch {
-    return false;
+  if (appleContainerAvailableMemo === null) {
+    try {
+      execFileSync("container", ["--version"], {
+        stdio: "ignore",
+        timeout: 5000,
+      });
+      appleContainerAvailableMemo = true;
+    } catch {
+      appleContainerAvailableMemo = false;
+    }
   }
+  return appleContainerAvailableMemo;
 }
 
 interface AgentAdapter {
