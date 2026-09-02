@@ -13,6 +13,7 @@ import {
   SHIM_DIR,
   WORK_DIR,
   containerArgs,
+  dockerArgs,
   hasScript,
   makeContainerShim,
   makeDockerShim,
@@ -1294,7 +1295,9 @@ test("--help documents --port", () => {
 });
 
 test("--port passes through as -p to docker", () => {
-  const r = runCli(["-p", "noop", "--port", "8080:3000"]);
+  const r = runCli(["-p", "noop", "--port", "8080:3000"], {
+    extraEnv: { HARNESS_CONTAINER_RUNTIME: "docker" },
+  });
   assert.equal(r.status, 0, r.stderr);
   const a = dockerArgs(r.stdout);
   assert.ok(a, "expected DOCKER_INVOKED line");
@@ -1304,14 +1307,12 @@ test("--port passes through as -p to docker", () => {
 });
 
 test("multiple --port flags all pass through", () => {
-  const r = runCli([
-    "-p",
-    "noop",
-    "--port",
-    "8080:3000",
-    "--port",
-    "5353:53/udp",
-  ]);
+  const r = runCli(
+    ["-p", "noop", "--port", "8080:3000", "--port", "5353:53/udp"],
+    {
+      extraEnv: { HARNESS_CONTAINER_RUNTIME: "docker" },
+    },
+  );
   assert.equal(r.status, 0, r.stderr);
   const a = dockerArgs(r.stdout);
   assert.ok(a, "expected DOCKER_INVOKED line");
@@ -1326,14 +1327,19 @@ test("multiple --port flags all pass through", () => {
 });
 
 test("--port accepts host-ip and protocol variants", () => {
-  const r = runCli([
-    "-p",
-    "noop",
-    "--port",
-    "127.0.0.1:8080:3000",
-    "--port",
-    "[::1]:8081:3001/tcp",
-  ]);
+  const r = runCli(
+    [
+      "-p",
+      "noop",
+      "--port",
+      "127.0.0.1:8080:3000",
+      "--port",
+      "[::1]:8081:3001/tcp",
+    ],
+    {
+      extraEnv: { HARNESS_CONTAINER_RUNTIME: "docker" },
+    },
+  );
   assert.equal(r.status, 0, r.stderr);
   const a = dockerArgs(r.stdout);
   assert.ok(a, "expected DOCKER_INVOKED line");
@@ -1362,14 +1368,19 @@ test("--port with out-of-range port fails", () => {
 test("--port coexists with --volumes (both forwarded)", () => {
   const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), "harness-port-vol-"));
   try {
-    const r = runCli([
-      "-p",
-      "noop",
-      "--volumes",
-      `${extraDir}:/mnt/data`,
-      "--port",
-      "8080:3000",
-    ]);
+    const r = runCli(
+      [
+        "-p",
+        "noop",
+        "--volumes",
+        `${extraDir}:/mnt/data`,
+        "--port",
+        "8080:3000",
+      ],
+      {
+        extraEnv: { HARNESS_CONTAINER_RUNTIME: "docker" },
+      },
+    );
     assert.equal(r.status, 0, r.stderr);
     const a = dockerArgs(r.stdout);
     assert.ok(a, "expected DOCKER_INVOKED line");

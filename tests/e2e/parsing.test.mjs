@@ -138,7 +138,9 @@ test("--env-file is passed to docker as --env-file <abs>", () => {
 });
 
 test("repeated -e passes all env files to docker as separate --env-file flags", () => {
-  const r = runCli(["-e", ENV_FILE, "-e", ENV_FILE_2, "-p", "noop"]);
+  const r = runCli(["-e", ENV_FILE, "-e", ENV_FILE_2, "-p", "noop"], {
+    extraEnv: { HARNESS_CONTAINER_RUNTIME: "docker" },
+  });
   assert.equal(r.status, 0, r.stderr);
   const a = dockerArgs(r.stdout);
   // Collect all values following --env-file
@@ -284,7 +286,7 @@ test("running from $HOME errors without --mount-entire-home", () => {
 
 test("--mount-entire-home allows running from $HOME and mounts it", () => {
   const r = runCli(["--mount-entire-home", "-p", "noop"], {
-    extraEnv: { HOME: WORK_DIR },
+    extraEnv: { HOME: WORK_DIR, HARNESS_CONTAINER_RUNTIME: "docker" },
   });
   assert.equal(r.status, 0, r.stderr);
   assert.doesNotMatch(r.stderr, /home directory/);
@@ -302,7 +304,7 @@ test("--file mode from $HOME is allowed (cwd is not mounted)", () => {
   // In --file mode only the single file is mounted, not the cwd, so the
   // home-directory footgun doesn't apply and the guard must not fire.
   const r = runCli(["-f", SAMPLE_FILE, "-p", "noop"], {
-    extraEnv: { HOME: WORK_DIR },
+    extraEnv: { HOME: WORK_DIR, HARNESS_CONTAINER_RUNTIME: "docker" },
   });
   assert.equal(r.status, 0, r.stderr);
   assert.doesNotMatch(r.stderr, /home directory/);
