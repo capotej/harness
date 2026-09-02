@@ -1,16 +1,19 @@
 # Changelog
 
-## [Unreleased]
+## [1.10.0] - 2026-09-02
 
 ### Summary
 
-Promotes Apple's `container` CLI as the default container runtime on macOS. `HARNESS_CONTAINER_RUNTIME=apple` is no longer needed — harness auto-detects whether `container` is on PATH and prefers it over docker (macOS only; on other platforms a same-named binary is an unrelated tool and docker stays default). Set `HARNESS_CONTAINER_RUNTIME=docker` to force docker. The `apple` value is now a deprecated alias: it still selects the apple runtime but prints a deprecation warning.
+Minor release with two new CLI flags and a runtime default change. `-e/--env-file` may now be repeated to merge multiple env files (previously a second `-e` silently dropped the first — minimist last-value-wins), e.g. `harness -e base.env -e project.env -p "..."`. The new repeatable `--port` flag publishes container ports to the host with up-front spec validation, e.g. `harness --port 8080:8080 -p "..."`. On macOS, harness now auto-detects Apple's `container` CLI and prefers it over docker — `HARNESS_CONTAINER_RUNTIME=apple` is no longer needed; `HARNESS_CONTAINER_RUNTIME=docker` forces docker, and the `apple` value stays as a deprecated alias. Also fixes a DNS hint and context mount for the apple runtime, and serves docs at https://harness.boldblack.ai/docs with corrected canonicals.
 
 ### Changes
 
-- Promote container CLI to default runtime via macOS-gated auto-detection (#114)
-- Keep `HARNESS_CONTAINER_RUNTIME=apple` as a deprecated alias instead of hard-failing
-- Ignore a `container` binary on PATH outside macOS (apple/container is macOS-only)
+- b290cf7 feat: add --port flag to publish container ports to the host (#178)
+- f56baf1 feat: support repeated -e/--env-file for merging multiple env files (#134)
+- 79c5722 feat: auto-detect container runtime, promote Apple container as default (#179)
+- 2916715 fix: apple host.docker.internal DNS hint + Hermes context mount (#118, #119) (#126)
+- 9db1e48 docs: serve docs at harness.boldblack.ai/docs (#171)
+- 92268d8 fix: point docs site_url at the brand domain for correct canonicals (#175)
 
 ## [1.9.13] - 2026-08-30
 
