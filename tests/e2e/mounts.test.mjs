@@ -1284,3 +1284,116 @@ test("opencode interactive keeps both the cwd-level .config and per-agent .confi
     `expected per-agent .config/opencode mount in: ${a.join(" ")}`,
   );
 });
+
+// ---- --port flag -----------------------------------------------------------
+
+test("--help documents --port", () => {
+  const r = runCli(["--help"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /--port/);
+});
+
+test("--port passes through as -p to docker", () => {
+  const r = runCli(["-p", "noop", "--port", "8080:3000"]);
+  assert.equal(r.status, 0, r.stderr);
+  const a = dockerArgs(r.stdout);
+  assert.ok(a, "expected DOCKER_INVOKED line");
+  const i = a.indexOf("-p");
+  assert.notEqual(i, -1, `expected -p flag in args: ${a.join(" ")}`);
+  assert.equal(a[i + 1], "8080:3000");
+});
+
+test("multiple --port flags all pass through", () => {
+  const r = runCli([
+    "-p",
+    "noop",
+    "--port",
+    "8080:3000",
+    "--port",
+    "5353:53/udp",
+  ]);
+  assert.equal(r.status, 0, r.stderr);
+  const a = dockerArgs(r.stdout);
+  assert.ok(a, "expected DOCKER_INVOKED line");
+  // Only scan docker-run flags (before the image token) — the container
+  // command also contains `pi -p noop`, whose -p is NOT a publish flag.
+  const imageIdx = a.findIndex((arg) =>
+    arg.includes("ghcr.io/boldblackai/harness"),
+  );
+  const runFlags = a.slice(0, imageIdx);
+  const specs = runFlags.filter((_, i) => runFlags[i - 1] === "-p");
+  assert.deepEqual(specs, ["8080:3000", "5353:53/udp"]);
+});
+
+test("--port accepts host-ip and protocol variants", () => {
+  const r = runCli([
+    "-p",
+    "noop",
+    "--port",
+    "127.0.0.1:8080:3000",
+    "--port",
+    "[::1]:8081:3001/tcp",
+  ]);
+  assert.equal(r.status, 0, r.stderr);
+  const a = dockerArgs(r.stdout);
+  assert.ok(a, "expected DOCKER_INVOKED line");
+  assert.ok(a.includes("127.0.0.1:8080:3000"), `args: ${a.join(" ")}`);
+  assert.ok(a.includes("[::1]:8081:3001/tcp"), `args: ${a.join(" ")}`);
+});
+
+test("--port with missing container port fails", () => {
+  const r = runCli(["-p", "noop", "--port", "8080"]);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /invalid port spec/);
+});
+
+test("--port with non-numeric port fails", () => {
+  const r = runCli(["-p", "noop", "--port", "http:web"]);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /invalid port spec/);
+});
+
+test("--port with out-of-range port fails", () => {
+  const r = runCli(["-p", "noop", "--port", "99999:3000"]);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /invalid port spec/);
+});
+
+test("--port coexists with --volumes (both forwarded)", () => {
+  const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), "harness-port-vol-"));
+  try {
+    const r = runCli([
+      "-p",
+      "noop",
+      "--volumes",
+      `${extraDir}:/mnt/data`,
+      "--port",
+      "8080:3000",
+    ]);
+    assert.equal(r.status, 0, r.stderr);
+    const a = dockerArgs(r.stdout);
+    assert.ok(a, "expected DOCKER_INVOKED line");
+    assert.ok(
+      a.includes(`${extraDir}:/mnt/data`),
+      `expected --volumes mount in: ${a.join(" ")}`,
+    );
+    assert.ok(
+      a.includes("8080:3000"),
+      `expected --port spec in: ${a.join(" ")}`,
+    );
+  } finally {
+    fs.rmSync(extraDir, { recursive: true, force: true });
+  }
+});
+
+test("--port is forwarded under the apple runtime as -p", () => {
+  const r = runCli(["-p", "noop", "--port", "8080:3000"], {
+    extraEnv: { HARNESS_CONTAINER_RUNTIME: "apple" },
+  });
+  assert.equal(r.status, 0, r.stderr);
+  const a = containerArgs(r.stdout);
+  assert.ok(a, "expected CONTAINER_INVOKED line");
+  const i = a.indexOf("-p");
+  assert.notEqual(i, -1, `expected -p flag in args: ${a.join(" ")}`);
+  assert.equal(a[i + 1], "8080:3000");
+});
