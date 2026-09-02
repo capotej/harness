@@ -228,7 +228,7 @@ If an old `.harness/` directory exists in your working directory, harness will e
 | Flag          | Alias | Description |
 |---------------|-------|-------------|
 | `--prompt`    | `-p`  | Pass a prompt directly to the agent |
-| `--env-file`  | `-e`  | Load environment variables into the container |
+| `--env-file`  | `-e`  | Load environment variables into the container; may be repeated |
 | `--file`      | `-f`  | Mount a single file instead of the current directory |
 | `--model`     | `-m`  | Override the model used by the agent |
 | `--agent`     | `-a`  | Select agent: `pi`, `opencode`, `hermes` (default: `pi`) |
