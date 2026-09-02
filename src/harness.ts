@@ -69,7 +69,12 @@ interface RunInput {
  * Abstraction over the host container runtime (docker, apple/container, ...).
  * The rest of harness (adapters, persistence, skills, cosign) is runtime-
  * agnostic; only image inspection, pulling, and the final `run` argv go
- * through here. Selection is driven by HARNESS_CONTAINER_RUNTIME.
+ * through here. By default harness auto-detects the runtime: on macOS, if
+ * Apple's `container` CLI is on PATH it is preferred; on every other
+ * platform docker is used (apple/container is macOS-only, so a same-named
+ * binary elsewhere is an unrelated tool and must not hijack selection).
+ * Set HARNESS_CONTAINER_RUNTIME=docker to force docker; `=apple` is a
+ * deprecated explicit alias for the apple runtime.
  */
 interface ContainerRuntime {
   /** Binary name on PATH (e.g. "docker", "container"). */
@@ -142,7 +147,7 @@ class DockerRuntime implements ContainerRuntime {
   }
 
   ensureReady(): void {
-    // docker is the default; assume present. (A missing docker surfaces as a
+    // docker is the fallback; assume present. (A missing docker surfaces as a
     // clear spawn ENOENT at run time, same as pre-runtime-abstraction behavior.)
   }
 }
@@ -242,14 +247,11 @@ class AppleContainerRuntime implements ContainerRuntime {
   }
 
   ensureReady(): void {
-    try {
-      execFileSync("container", ["--version"], {
-        stdio: ["ignore", "ignore", "ignore"],
-        timeout: 5000,
-      });
-    } catch {
+    // selectRuntime() already probed `container --version` (memoized); a false
+    // here means the probe failed there too — same evidence, one exec.
+    if (!appleContainerAvailable()) {
       console.error(
-        "harness: HARNESS_CONTAINER_RUNTIME=apple requires the `container` CLI (Apple container, v1.0.0+). Install from https://github.com/apple/container/releases and run `container system start`, or unset HARNESS_CONTAINER_RUNTIME to use docker.",
+        "harness: the `container` CLI failed its version probe (Apple container, v1.0.0+). Install from https://github.com/apple/container/releases and run `container system start`, or set HARNESS_CONTAINER_RUNTIME=docker to use docker instead.",
       );
       process.exit(1);
     }
@@ -262,18 +264,59 @@ class AppleContainerRuntime implements ContainerRuntime {
 }
 
 function selectRuntime(): ContainerRuntime {
-  const raw = (process.env.HARNESS_CONTAINER_RUNTIME ?? "docker").toLowerCase();
-  switch (raw) {
-    case "docker":
-      return new DockerRuntime();
-    case "apple":
-      return new AppleContainerRuntime();
-    default:
-      console.error(
-        `harness: unknown HARNESS_CONTAINER_RUNTIME="${raw}". Valid values: apple, docker (or unset for docker).`,
-      );
-      process.exit(1);
+  const raw = (process.env.HARNESS_CONTAINER_RUNTIME ?? "").toLowerCase();
+  if (raw === "docker") {
+    return new DockerRuntime();
   }
+  if (raw === "apple") {
+    // Deprecated: the apple runtime is now auto-detected on macOS. Keep the
+    // value working (with a warning) so existing configs don't hard-fail.
+    console.error(
+      'harness: HARNESS_CONTAINER_RUNTIME=apple is deprecated (the apple runtime is now auto-detected on macOS); unset the variable, or use "auto" or "docker".',
+    );
+    return new AppleContainerRuntime();
+  }
+  if (raw !== "" && raw !== "auto") {
+    console.error(
+      `harness: unknown HARNESS_CONTAINER_RUNTIME="${raw}". Valid values: auto (default), docker, apple (deprecated) — or unset for auto-detect.`,
+    );
+    process.exit(1);
+  }
+  // Auto-detect: prefer Apple's container CLI when it actually executes —
+  // but only on macOS. apple/container ships for macOS only, so on any other
+  // platform a binary named `container` is an unrelated tool and docker stays
+  // default. Probing `--version` (not just a PATH lookup) proves the binary
+  // runs at all; broken installs, quarantine attributes, and wrong-arch
+  // builds all fail here, and execution is what selection depends on.
+  if (process.platform === "darwin" && appleContainerAvailable()) {
+    return new AppleContainerRuntime();
+  }
+  return new DockerRuntime();
+}
+
+/**
+ * Whether Apple's `container` CLI exists and executes. Reuses the same
+ * `--version` probe `AppleContainerRuntime.ensureReady()` runs, which is
+ * strictly stronger evidence than a PATH lookup. The result is memoized for
+ * the process lifetime so `selectRuntime()` and `ensureReady()` share one
+ * probe instead of running it twice; it is never persisted across runs, since
+ * the CLI's install state can change between invocations.
+ */
+let appleContainerAvailableMemo: boolean | null = null;
+
+function appleContainerAvailable(): boolean {
+  if (appleContainerAvailableMemo === null) {
+    try {
+      execFileSync("container", ["--version"], {
+        stdio: "ignore",
+        timeout: 5000,
+      });
+      appleContainerAvailableMemo = true;
+    } catch {
+      appleContainerAvailableMemo = false;
+    }
+  }
+  return appleContainerAvailableMemo;
 }
 
 interface AgentAdapter {
@@ -560,7 +603,7 @@ Options:
 Environment variables:
   HARNESS_IMAGE_TAG           Override the Docker image tag (defaults to package version)
   HARNESS_REGISTRY            Override the container registry (defaults to ghcr.io/boldblackai/harness)
-  HARNESS_CONTAINER_RUNTIME   Container runtime to use: docker (default) or apple (Apple container CLI)
+  HARNESS_CONTAINER_RUNTIME   Container runtime: auto (default; prefers Apple container on macOS), docker, apple (deprecated)
   XDG_DATA_HOME              Override the base directory for persistence data (defaults to ~/.local/share)
   XDG_CACHE_HOME             Override the base directory for cosign cache (defaults to ~/.cache)
 

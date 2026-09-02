@@ -505,3 +505,24 @@ system start`), the microVM rationale for dropping `--security-opt`, and the
  cross-reference it. `AGENTS.md` gains a **Container runtime selection**
 entry under Key subsystems, and the architecture overview's spawn step now
 reads `<runtime> run`.
+
+## Amendment: auto-detection supersedes explicit opt-in (2026-09-02, drafted in #114, landed as #179)
+
+The "named value, explicit opt-in, never auto-detect" design above has been
+superseded: harness now auto-detects the runtime by default. The original
+concern (silently changing long-standing docker behavior) was accepted in
+exchange for zero-config on macOS. Details:
+
+- unset or `auto` → auto-detect: on macOS, prefer `container` if on PATH;
+  on every other platform use docker. The gate is `process.platform ===
+  "darwin"` — apple/container ships for macOS only, so a binary named
+  `container` on a Linux PATH is an unrelated tool and must not hijack
+  selection.
+- `docker` → force docker (unchanged).
+- `apple` → deprecated explicit alias for the apple runtime. Prints a
+  deprecation warning but still works (it no longer hard-fails); kept so
+  existing configs from the opt-in era keep functioning. Will be removed
+  in a future release.
+
+The rest of this RFC (argv shape, `--security-opt` omission rationale,
+digest-keyed cosign cache, probe behavior) remains accurate.

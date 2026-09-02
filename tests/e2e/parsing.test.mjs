@@ -20,6 +20,7 @@ import {
   makeDockerShim,
   normalizeCwd,
   runCli,
+  runtimeArgsAny,
   setupIfNecessary,
 } from "./helpers.mjs";
 
@@ -103,8 +104,8 @@ test("HARNESS_IMAGE_TAG short-circuits cosign verification", () => {
   const r = runCli(["-p", "noop"]);
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stderr, /skipping cosign verification/);
-  const args = dockerArgs(r.stdout);
-  assert.ok(args, "expected DOCKER_INVOKED line");
+  const args = runtimeArgsAny(r.stdout);
+  assert.ok(args, "expected *_INVOKED line");
   // image is the last positional before container cmd; for pi it's REGISTRY:test-tag
   assert.ok(
     args.some((a) => a === "ghcr.io/boldblackai/harness:test-tag"),
@@ -121,8 +122,8 @@ test("--no-verify still invokes docker successfully (no real cosign call)", () =
   assert.equal(r.status, 0, r.stderr);
   assert.doesNotMatch(r.stderr, /refusing to verify/);
   assert.doesNotMatch(r.stderr, /image signature verification failed/);
-  const args = dockerArgs(r.stdout);
-  assert.ok(args, "expected DOCKER_INVOKED line");
+  const args = runtimeArgsAny(r.stdout);
+  assert.ok(args, "expected *_INVOKED line");
 });
 
 // ---- env-file forwarding ---------------------------------------------------
@@ -130,14 +131,16 @@ test("--no-verify still invokes docker successfully (no real cosign call)", () =
 test("--env-file is passed to docker as --env-file <abs>", () => {
   const r = runCli(["-e", ENV_FILE, "-p", "noop"]);
   assert.equal(r.status, 0, r.stderr);
-  const a = dockerArgs(r.stdout);
+  const a = runtimeArgsAny(r.stdout);
   const i = a.indexOf("--env-file");
   assert.notEqual(i, -1);
   assert.equal(a[i + 1], ENV_FILE); // resolved to abs path; ENV_FILE already abs
 });
 
 test("repeated -e passes all env files to docker as separate --env-file flags", () => {
-  const r = runCli(["-e", ENV_FILE, "-e", ENV_FILE_2, "-p", "noop"]);
+  const r = runCli(["-e", ENV_FILE, "-e", ENV_FILE_2, "-p", "noop"], {
+    extraEnv: { HARNESS_CONTAINER_RUNTIME: "docker" },
+  });
   assert.equal(r.status, 0, r.stderr);
   const a = dockerArgs(r.stdout);
   // Collect all values following --env-file
@@ -165,7 +168,7 @@ test("--help documents -e may be repeated", () => {
 test("-e without --local sets HARNESS_CLOUD_MODE=1 (cloud mode)", () => {
   const r = runCli(["-e", ENV_FILE, "-p", "noop"]);
   assert.equal(r.status, 0, r.stderr);
-  const a = dockerArgs(r.stdout);
+  const a = runtimeArgsAny(r.stdout);
   const idx = a.findIndex(
     (v, i) => v === "-e" && a[i + 1] === "HARNESS_CLOUD_MODE=1",
   );
@@ -175,7 +178,7 @@ test("-e without --local sets HARNESS_CLOUD_MODE=1 (cloud mode)", () => {
 test("no -e does NOT set HARNESS_CLOUD_MODE (local mode)", () => {
   const r = runCli(["-p", "noop"]);
   assert.equal(r.status, 0, r.stderr);
-  const a = dockerArgs(r.stdout);
+  const a = runtimeArgsAny(r.stdout);
   const has = a.some(
     (v, i) => v === "-e" && a[i + 1]?.startsWith("HARNESS_CLOUD_MODE"),
   );
@@ -188,7 +191,7 @@ test("no -e does NOT set HARNESS_CLOUD_MODE (local mode)", () => {
 test("-e with --local does NOT set HARNESS_CLOUD_MODE (forced local)", () => {
   const r = runCli(["-e", ENV_FILE, "--local", "-p", "noop"]);
   assert.equal(r.status, 0, r.stderr);
-  const a = dockerArgs(r.stdout);
+  const a = runtimeArgsAny(r.stdout);
   // --env-file should still be present
   assert.notEqual(a.indexOf("--env-file"), -1);
   const has = a.some(
@@ -204,7 +207,7 @@ test("cloud mode works for all agents (pi, opencode, hermes)", () => {
   for (const agent of ["pi", "opencode", "hermes"]) {
     const r = runCli(["-a", agent, "-e", ENV_FILE, "-p", "noop"]);
     assert.equal(r.status, 0, r.stderr);
-    const a = dockerArgs(r.stdout);
+    const a = runtimeArgsAny(r.stdout);
     const has = a.some(
       (v, i) => v === "-e" && a[i + 1] === "HARNESS_CLOUD_MODE=1",
     );
@@ -223,7 +226,7 @@ test("--help documents --local flag", () => {
 test("--file mounts only the file at /workspace/<basename>", () => {
   const r = runCli(["-f", SAMPLE_FILE, "-p", "noop"]);
   assert.equal(r.status, 0, r.stderr);
-  const a = dockerArgs(r.stdout);
+  const a = runtimeArgsAny(r.stdout);
   const vIdx = a.indexOf("-v");
   assert.notEqual(vIdx, -1);
   assert.equal(a[vIdx + 1], `${SAMPLE_FILE}:/workspace/script.py`);
@@ -232,7 +235,7 @@ test("--file mounts only the file at /workspace/<basename>", () => {
 test("default mount is cwd:/workspace", () => {
   const r = runCli(["-p", "noop"]);
   assert.equal(r.status, 0, r.stderr);
-  const a = dockerArgs(r.stdout);
+  const a = runtimeArgsAny(r.stdout);
   const vIdx = a.indexOf("-v");
   assert.notEqual(vIdx, -1);
   assert.equal(a[vIdx + 1], `${WORK_DIR}:/workspace`);
@@ -241,7 +244,9 @@ test("default mount is cwd:/workspace", () => {
 // ---- security flags --------------------------------------------------------
 
 test("docker invocation always includes hardening flags", () => {
-  const r = runCli(["-p", "noop"]);
+  const r = runCli(["-p", "noop"], {
+    extraEnv: { HARNESS_CONTAINER_RUNTIME: "docker" },
+  });
   const a = dockerArgs(r.stdout);
   assert.ok(a.includes("--rm"));
   assert.ok(a.includes("--cap-drop=ALL"));
@@ -281,7 +286,7 @@ test("running from $HOME errors without --mount-entire-home", () => {
 
 test("--mount-entire-home allows running from $HOME and mounts it", () => {
   const r = runCli(["--mount-entire-home", "-p", "noop"], {
-    extraEnv: { HOME: WORK_DIR },
+    extraEnv: { HOME: WORK_DIR, HARNESS_CONTAINER_RUNTIME: "docker" },
   });
   assert.equal(r.status, 0, r.stderr);
   assert.doesNotMatch(r.stderr, /home directory/);
@@ -299,7 +304,7 @@ test("--file mode from $HOME is allowed (cwd is not mounted)", () => {
   // In --file mode only the single file is mounted, not the cwd, so the
   // home-directory footgun doesn't apply and the guard must not fire.
   const r = runCli(["-f", SAMPLE_FILE, "-p", "noop"], {
-    extraEnv: { HOME: WORK_DIR },
+    extraEnv: { HOME: WORK_DIR, HARNESS_CONTAINER_RUNTIME: "docker" },
   });
   assert.equal(r.status, 0, r.stderr);
   assert.doesNotMatch(r.stderr, /home directory/);
