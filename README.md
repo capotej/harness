@@ -233,6 +233,7 @@ If an old `.harness/` directory exists in your working directory, harness will e
 | `--model`     | `-m`  | Override the model used by the agent |
 | `--agent`     | `-a`  | Select agent: `pi`, `opencode`, `hermes` (default: `pi`) |
 | `--volumes`   | `-v`  | Additional volume mount (`host:container[:opts]`); may be repeated |
+| `--port`      |       | Publish a container port to the host (`[host-ip:]host-port:container-port[/protocol]`); may be repeated |
 | `--no-verify` |       | Skip cosign signature and provenance verification |
 | `--no-skills` |       | Disable mounting user skills directories (`~/.agents/skills`, `~/.claude/skills`) |
 | `--no-context-files` | `-nc` | Disable mounting global context files (`~/.agents/AGENTS.md`, `~/.claude/CLAUDE.md`) |
