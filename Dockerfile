@@ -45,10 +45,10 @@ RUN set -eux && \
     rm -rf gh*
 
 ENV PNPM_HOME=/usr/local/share/pnpm
-ENV PNPM_MINIMUM_RELEASE_AGE=10080
-ENV PATH=$PNPM_HOME:$PATH
+ENV PNPM_CONFIG_MINIMUM_RELEASE_AGE=10080
+ENV PATH=$PNPM_HOME/bin:$PNPM_HOME:$PATH
 
-RUN corepack enable && corepack prepare pnpm@10.34.5 --activate && \
+RUN corepack enable && corepack prepare pnpm@11.25.0 --activate && \
     pnpm install -g @earendil-works/pi-coding-agent@0.80.10 && \
     pnpm store prune && \
     rm -rf ~/.cache/pnpm ~/.npm && \
