@@ -1,10 +1,12 @@
 ARG BASE_IMAGE=ghcr.io/boldblackai/harness:latest
 FROM ${BASE_IMAGE}
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 USER root
 
-RUN pnpm install -g opencode-ai@1.18.4 && \
-    cd $(pnpm root -g)/opencode-ai && node postinstall.mjs && \
+RUN pnpm install -g opencode-ai@1.18.25 && \
+    cd "$(pnpm list -g --parseable --depth 0 | grep '/opencode-ai$')" && node postinstall.mjs && \
     pnpm store prune && \
     rm -rf ~/.cache/pnpm ~/.npm
 

@@ -208,7 +208,7 @@ npx @boldblackai/harness --no-verify -p "write me a fizzbuzz in Go"
 
 The image build enforces a 7-day cooldown on dependency resolution — a guard against supply-chain compromises that are typically discovered and yanked within hours.
 
-- **pnpm**: `PNPM_MINIMUM_RELEASE_AGE=10080` (minutes) via environment variable
+- **pnpm**: `pnpm_config_minimumReleaseAge=10080` (minutes) via environment variable
 - **uv**: `--exclude-newer` set to 7 days ago at image build time
 
 The cooldown applies to transitive dependencies too. Older packages install normally.
